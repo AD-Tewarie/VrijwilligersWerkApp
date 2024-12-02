@@ -1,0 +1,33 @@
+﻿@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Gebruiker Login";
+}
+
+<div class="container mt-5">
+    <div class="text-center">
+        <h1 class="display-4 mb-4">Gebruiker Login</h1>
+        <p class="lead">Log in om vrijwilligerswerk te beheren en te registreren.</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
+    {
+        <div class="alert alert-info" role="alert">
+            @Model.FeedbackMessage
+        </div>
+    }
+
+    <form method="post">
+        <div class="mb-3">
+            <label for="Naam" class="form-label">Voornaam</label>
+            <input type="text" class="form-control" id="Naam" name="Naam" value="@Model.Naam" required />
+        </div>
+
+        <div class="mb-3">
+            <label for="Achternaam" class="form-label">Achternaam</label>
+            <input type="text" class="form-control" id="Achternaam" name="Achternaam" value="@Model.Achternaam" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Inloggen</button>
+    </form>
+</div>

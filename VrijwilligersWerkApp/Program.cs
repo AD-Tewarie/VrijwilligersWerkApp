@@ -4,12 +4,14 @@ using Domain.Mapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+
 builder.Services.AddRazorPages();
+builder.Services.AddSession(); 
+builder.Services.AddDistributedMemoryCache(); 
+
 builder.Services.AddScoped<IUserBeheer, UserBeheer>();
 builder.Services.AddScoped<IVrijwilligersWerkBeheer, VrijwilligersWerkBeheer>();
 builder.Services.AddScoped<IRegistratieBeheer, RegistratieBeheer>();
-// Register mappers
 builder.Services.AddScoped<UserMapper>();
 builder.Services.AddScoped<WerkMapper>();
 builder.Services.AddScoped<RegistratieMapper>();
@@ -20,7 +22,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -29,8 +30,14 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSession(); // Enable session middleware
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/Login/LoginGebruiker");
+    return Task.CompletedTask;
+});
 
 app.Run();

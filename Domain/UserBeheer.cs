@@ -31,14 +31,14 @@ namespace Domain
 
 
         // haal alle users op
-        public List<string> GetAllUsers()
+        public List<User> GetAllUsers()
         {
             
-            var users = new List<string>();
+            var users = new List<User>();
 
             foreach (var user in UserMapper.MapToUserLijst())
             {
-                users.Add($"Gebruiker ID: {user.UserId}, Voornaam: {user.Naam}, Achternaam: {user.AchterNaam}");
+                users.Add(user);
             }
 
             return users;

@@ -28,32 +28,30 @@ namespace VrijwilligersWerkApp.Pages.RegistreerWerk
 
         public IActionResult OnPostApply(int id)
         {
-            var selectedJob = werkBeheer.HaalwerkOpID(id);
-            if (selectedJob != null)
-            {
-                try
-                {
-                    
-                    registratieBeheer.RegistreerGebruikerVoorWerk(GetCurrentUserId(), id);
+            // Retrieve user ID from session
+            int? userId = HttpContext.Session.GetInt32("UserId");
 
-                    FeedbackMessage = "Je aanmelding is succesvol geregistreerd!";
-                    return Page();
-                }
-                catch (Exception ex)
-                {
-                    FeedbackMessage = $"Er is een fout opgetreden bij de aanmelding: {ex.Message}";
-                    return Page();
-                }
+            if (userId == null)
+            {
+                FeedbackMessage = "U moet ingelogd zijn om u te registreren.";
+                return RedirectToPage("/Login/LoginGebruiker");
             }
 
-            FeedbackMessage = "Registratie Mislukt.";
+            try
+            {
+                // Use the userId for registration
+                registratieBeheer.RegistreerGebruikerVoorWerk(userId.Value, id);
+                FeedbackMessage = "Registratie succesvol!";
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                FeedbackMessage = $"Er is een fout opgetreden: {ex.Message}";
+            }
+
             return Page();
         }
 
-        private int GetCurrentUserId()
-        {
-            //test zonder inlogsysteem
-            return 1;
-        }
+      
     }
 }

@@ -10,7 +10,7 @@ namespace Domain.Interfaces
     public interface IUserBeheer
     {
         void VoegGebruikerToe(string naam, string achterNaam );
-        List<string> GetAllUsers();
+        List<User> GetAllUsers();
         void VerwijderGebruiker(int userId);
     }
 }
