@@ -1,0 +1,35 @@
+﻿@page
+@model VrijwilligersWerkApp.Pages.NieuwWerk.MaakWerkModel
+@{
+    ViewData["Title"] = "Nieuw Vrijwilligerswerk Toevoegen";
+}
+
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">Nieuw Vrijwilligerswerk Toevoegen</h1>
+
+    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
+    {
+        <div class="alert alert-info" role="alert">
+            @Model.FeedbackMessage
+        </div>
+    }
+
+    <form method="post">
+        <div class="mb-3">
+            <label for="Titel" class="form-label">Titel</label>
+            <input type="text" class="form-control" id="Titel" name="Titel" value="@Model.Titel" required />
+        </div>
+
+        <div class="mb-3">
+            <label for="Omschrijving" class="form-label">Omschrijving</label>
+            <textarea class="form-control" id="Omschrijving" name="Omschrijving" rows="4" required>@Model.Omschrijving</textarea>
+        </div>
+
+        <div class="mb-3">
+            <label for="MaxCapaciteit" class="form-label">Maximale Capaciteit</label>
+            <input type="number" class="form-control" id="MaxCapaciteit" name="MaxCapaciteit" value="@Model.MaxCapaciteit" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Toevoegen</button>
+    </form>
+</div>
