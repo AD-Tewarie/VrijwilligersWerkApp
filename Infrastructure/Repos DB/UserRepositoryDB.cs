@@ -1,26 +1,35 @@
 ﻿using Infrastructure.DTO;
+using Infrastructure.Interfaces;
+using Microsoft.Extensions.Options;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Repos_DB
 {
-    public class UserRepositoryDB
+    public class UserRepositoryDB : IUserRepository
     {
 
-        private string conString = "server=localhost;user=root;database=seniorconnect;port=3306;password=Devesh97!";
+        private readonly string connString;
         private MySqlConnection connection = null;
 
 
+        public UserRepositoryDB(DBSettings settings)
+        {
+            connString = settings.DefaultConnection;
+        }
+
+        
 
         private bool IsConnect()
         {
             if (connection == null)
             {
-                connection = new MySqlConnection(conString);
+                connection = new MySqlConnection(connString);
                 connection.Open();
             }
             return true;

@@ -1,6 +1,7 @@
 ﻿using Domain.Interfaces;
 using Domain.Mapper;
 using Domain.Models;
+using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
 using System;
 using System.Collections.Generic;
@@ -14,15 +15,20 @@ namespace Domain
     {
 
 
-        private readonly VrijwilligersWerkRepositoryDB dbRepos = new VrijwilligersWerkRepositoryDB();
+        private readonly IVrijwilligersWerkRepository dbRepos;
         private List<VrijwilligersWerk> werkLijst = new List<VrijwilligersWerk>();
+        private readonly WerkMapper werkMapper;
 
-
+        public VrijwilligersWerkBeheer(IVrijwilligersWerkRepository werkRepository, WerkMapper weMapper)
+        {
+            dbRepos = werkRepository;
+            werkMapper = weMapper;
+        }
 
 
         public int GetNieweWerkId()
         {
-            werkLijst = WerkMapper.MapToWerkLijst();
+            werkLijst = werkMapper.MapToWerkLijst();
             int maxId = 0;
             foreach (var werk in werkLijst)
             {
@@ -43,7 +49,7 @@ namespace Domain
             werkLijst.Add(nieuwWerk);
 
 
-            var werkDTO = WerkMapper.MapToDTO(nieuwWerk);
+            var werkDTO = werkMapper.MapToDTO(nieuwWerk);
             dbRepos.AddVrijwilligersWerk(werkDTO);
 
             
@@ -53,7 +59,7 @@ namespace Domain
 
         public List<VrijwilligersWerk> BekijkAlleWerk()
         {
-            var werkLijst = WerkMapper.MapToWerkLijst();
+            var werkLijst = werkMapper.MapToWerkLijst();
             
             return werkLijst;
         }
@@ -93,7 +99,7 @@ namespace Domain
 
         public VrijwilligersWerk HaalwerkOpID(int id)
         {
-            werkLijst = WerkMapper.MapToWerkLijst();
+            werkLijst = werkMapper.MapToWerkLijst();
 
             for (int i = 0; i < werkLijst.Count; i++)
             {

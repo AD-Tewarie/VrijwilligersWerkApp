@@ -23,6 +23,7 @@
                 <tr>
                     <th scope="col">Titel</th>
                     <th scope="col">Beschrijving</th>
+                    <th scope="col">Capaciteit</th>
                     <th scope="col">Acties</th>
                 </tr>
             </thead>
@@ -32,6 +33,7 @@
                     <tr>
                         <td>@werk.Titel</td>
                         <td>@werk.Omschrijving</td>
+                        <td>@werk.MaxCapaciteit</td>
                         <td>
                             <form method="post" asp-page-handler="Apply">
                                 <input type="hidden" name="id" value="@werk.WerkId" />

@@ -1,5 +1,6 @@
 ﻿using Domain.Models;
 using Infrastructure;
+using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
 using System;
 using System.Collections.Generic;
@@ -12,9 +13,17 @@ namespace Domain.Mapper
     public class WerkMapper
     {
         
-        private static VrijwilligersWerkRepositoryDB dbRepos = new VrijwilligersWerkRepositoryDB();
+        private IVrijwilligersWerkRepository dbRepos;
 
-        public static List<VrijwilligersWerk> MapToWerkLijst()
+
+        public WerkMapper(IVrijwilligersWerkRepository repos)
+        {
+            dbRepos = repos;
+        }
+
+
+
+        public List<VrijwilligersWerk> MapToWerkLijst()
         {
             List<VrijwilligersWerk> werk = new List<VrijwilligersWerk>();
             List<VrijwilligersWerkDTO> werkDTOs = dbRepos.GetVrijwilligersWerk();
@@ -28,7 +37,7 @@ namespace Domain.Mapper
         }
 
         
-        public static VrijwilligersWerkDTO MapToDTO(VrijwilligersWerk werk)
+        public VrijwilligersWerkDTO MapToDTO(VrijwilligersWerk werk)
         {
             return new VrijwilligersWerkDTO(
                 werk.WerkId,
@@ -42,7 +51,7 @@ namespace Domain.Mapper
             
         }
 
-        public static VrijwilligersWerk MapToVrijwilligerswerk(VrijwilligersWerkDTO dto)
+        public VrijwilligersWerk MapToVrijwilligerswerk(VrijwilligersWerkDTO dto)
         {
             return new VrijwilligersWerk(
                 dto.WerkId,

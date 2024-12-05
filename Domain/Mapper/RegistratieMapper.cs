@@ -1,5 +1,6 @@
 ﻿using Domain.Models;
 using Infrastructure.DTO;
+using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
 using System;
 using System.Collections.Generic;
@@ -12,10 +13,20 @@ namespace Domain.Mapper
 {
     public class RegistratieMapper
     {
-        private static WerkRegistratieRepositoryDB repository = new WerkRegistratieRepositoryDB();
-        
+        private  IWerkRegistratieRepository repository;
+        private WerkMapper werkMapper;
+        private UserMapper userMapper;
 
-        public static List<WerkRegistratie> MapToDomainList()
+        public RegistratieMapper(IWerkRegistratieRepository repos, WerkMapper werk, UserMapper user)
+        {
+            repository = repos;
+            werkMapper = werk;
+            userMapper = user;
+        }
+
+
+
+        public  List<WerkRegistratie> MapToDomainList()
         {
             List<WerkRegistratie> registraties = new List<WerkRegistratie>();
             List<WerkRegistratieDTO> registratieDTOs = repository.GetWerkRegistraties();
@@ -24,8 +35,8 @@ namespace Domain.Mapper
 
             foreach (WerkRegistratieDTO dto in registratieDTOs)
             {
-                var vrijwilligersWerk = WerkMapper.MapToVrijwilligerswerk(dto.VrijwilligersWerk);
-                var user = UserMapper.MapToUser(dto.User);
+                var vrijwilligersWerk = werkMapper.MapToVrijwilligerswerk(dto.VrijwilligersWerk);
+                var user = userMapper.MapToUser(dto.User);
 
                 registraties.Add(new WerkRegistratie(vrijwilligersWerk, user, dto.RegistratieId));
 
@@ -37,11 +48,11 @@ namespace Domain.Mapper
 
        
 
-        public static WerkRegistratieDTO MapToDTO(WerkRegistratie registratie)
+        public  WerkRegistratieDTO MapToDTO(WerkRegistratie registratie)
         {
             return new WerkRegistratieDTO(
-                WerkMapper.MapToDTO(registratie.VrijwilligersWerk),
-                UserMapper.MapToDTO(registratie.User),
+                werkMapper.MapToDTO(registratie.VrijwilligersWerk),
+                userMapper.MapToDTO(registratie.User),
                 registratie.RegistratieId);
 
         }

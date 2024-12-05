@@ -6,18 +6,25 @@ using System.Text;
 using System.Threading.Tasks;
 using Infrastructure.DTO;
 using Infrastructure.Repos_DB;
+using Infrastructure.Interfaces;
 
 namespace Domain.Mapper
 {
     public class UserMapper
     {
-        private static UserRepositoryDB UserRepo = new UserRepositoryDB();
+        private  IUserRepository userRepo;
 
 
-        public static List<User> MapToUserLijst()
+        public UserMapper(IUserRepository repos)
+        {
+            userRepo = repos;
+        }
+
+
+        public List<User> MapToUserLijst()
         {
             List<User> user = new List<User>();
-            List<UserDTO> userDTO = UserRepo.GetUsers();
+            List<UserDTO> userDTO = userRepo.GetUsers();
 
             foreach (UserDTO dto in userDTO)
             {
@@ -30,7 +37,7 @@ namespace Domain.Mapper
         }
 
 
-        public static User MapToUser(UserDTO dto)
+        public User MapToUser(UserDTO dto)
         {
             return new User(
                 dto.UserId,
@@ -41,7 +48,7 @@ namespace Domain.Mapper
                 );
         }
 
-        public static UserDTO MapToDTO(User user)
+        public UserDTO MapToDTO(User user)
         {
             return new UserDTO(
                 user.UserId,

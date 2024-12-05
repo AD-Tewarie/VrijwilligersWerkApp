@@ -1,6 +1,7 @@
 ﻿using Domain.Interfaces;
 using Domain.Mapper;
 using Domain.Models;
+using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
 using System;
 using System.Collections.Generic;
@@ -15,15 +16,29 @@ namespace Domain
 
 
 
-        private readonly UserRepositoryDB userRepository = new UserRepositoryDB();
-        private readonly WerkRegistratieRepositoryDB registratieRepository = new WerkRegistratieRepositoryDB();
-        private readonly VrijwilligersWerkRepositoryDB werkRepository = new VrijwilligersWerkRepositoryDB();
+        private readonly IUserRepository userRepository;
+        private readonly IWerkRegistratieRepository registratieRepository;
+        private readonly IVrijwilligersWerkRepository werkRepository;
+        private readonly RegistratieMapper registratieMapper;
+        private readonly UserMapper userMapper;
+        private readonly WerkMapper werkMapper; 
 
+
+        public RegistratieBeheer(IUserRepository uRepos, IWerkRegistratieRepository wRepos, IVrijwilligersWerkRepository vRepos,
+            RegistratieMapper regMapper, UserMapper usMapper, WerkMapper weMapper)
+        {
+            userRepository = uRepos;
+            registratieRepository = wRepos;
+            werkRepository = vRepos;
+            registratieMapper = regMapper;
+            userMapper = usMapper;
+            werkMapper = weMapper;
+        }
 
 
         public int NieweRegistratieId()
         {
-            List<WerkRegistratie> registraties = RegistratieMapper.MapToDomainList();
+            List<WerkRegistratie> registraties = registratieMapper.MapToDomainList();
             int maxId = 0;
             foreach (var reg in registraties)
             {
@@ -42,7 +57,7 @@ namespace Domain
                 var regLijst = new List<string>();
 
 
-                foreach (var registraties in RegistratieMapper.MapToDomainList())
+                foreach (var registraties in registratieMapper.MapToDomainList())
                 {
                     regLijst.Add($"RegistratieID: {registraties.RegistratieId} | Vrijwilligerswerk: {registraties.VrijwilligersWerk.Titel} | Geregistreerde Gebruiker: {registraties.User.Naam}  {registraties.User.AchterNaam}");
                 }
@@ -55,18 +70,18 @@ namespace Domain
         public void RegistreerGebruikerVoorWerk(int gebruikerId, int werkId)
         {
             // Haal registraties op
-            var registraties = RegistratieMapper.MapToDomainList();
+            var registraties = registratieMapper.MapToDomainList();
 
             // Haal gebruiker op
             var getUser = userRepository.GetUserOnId(gebruikerId);
-            var gebruiker = UserMapper.MapToUser(getUser);
+            var gebruiker = userMapper.MapToUser(getUser);
             if (gebruiker == null)
             {
                 throw new KeyNotFoundException("Gebruiker met opgegeven ID bestaat niet.");
             }
 
             // Haal vrijwilligerswerk op
-            var werk = WerkMapper.MapToVrijwilligerswerk( werkRepository.GetWerkOnId(werkId));
+            var werk = werkMapper.MapToVrijwilligerswerk( werkRepository.GetWerkOnId(werkId));
             if (werk == null)
             {
                 throw new KeyNotFoundException("Vrijwilligerswerk met opgegeven ID bestaat niet.");
@@ -89,7 +104,7 @@ namespace Domain
 
             // Maak en voeg de registratie toe
             var registratie = new WerkRegistratie(werk, gebruiker, NieweRegistratieId() );
-            registratieRepository.AddWerkRegistratie(RegistratieMapper.MapToDTO( registratie));
+            registratieRepository.AddWerkRegistratie(registratieMapper.MapToDTO( registratie));
 
             // Update aantal registraties
             int wijziging = 1;

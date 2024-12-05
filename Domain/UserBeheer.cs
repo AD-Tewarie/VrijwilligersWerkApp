@@ -1,6 +1,7 @@
 ﻿using Domain.Interfaces;
 using Domain.Mapper;
 using Domain.Models;
+using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
 using System;
 using System.Collections.Generic;
@@ -14,10 +15,15 @@ namespace Domain
     {
 
  
-        private UserRepositoryDB repositoryDB = new UserRepositoryDB();
+        private IUserRepository repositoryDB;
         private List<User> users = new List<User>();
+        private readonly UserMapper userMapper;
 
-
+        public UserBeheer(IUserRepository userRepository, UserMapper userMap)
+        {
+            repositoryDB = userRepository;
+            userMapper = userMap;
+        }
 
 
         // voeg user toe
@@ -25,7 +31,7 @@ namespace Domain
         {
             int userId = GenereerId();
             var user = new User(userId, naam, achterNaam);
-            var userDTO = UserMapper.MapToDTO(user); // Convert to UserDTO
+            var userDTO = userMapper.MapToDTO(user); // Convert to UserDTO
             repositoryDB.AddUser(userDTO);
         }
 
@@ -36,7 +42,7 @@ namespace Domain
             
             var users = new List<User>();
 
-            foreach (var user in UserMapper.MapToUserLijst())
+            foreach (var user in userMapper.MapToUserLijst())
             {
                 users.Add(user);
             }
@@ -55,7 +61,7 @@ namespace Domain
         // genereer user id
         public int GenereerId()
         {
-            users = UserMapper.MapToUserLijst();
+            users = userMapper.MapToUserLijst();
             int maxId = 0;
             foreach (var user in users)
             {
