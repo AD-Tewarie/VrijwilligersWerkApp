@@ -17,6 +17,7 @@ namespace Infrastructure.Repos_DB
         private IVrijwilligersWerkRepository werkDB;
         private string connString;
         private MySqlConnection connection = null;
+      
 
 
         public WerkRegistratieRepositoryDB(DBSettings settings, IVrijwilligersWerkRepository werkDb, IUserRepository userDb)
@@ -26,7 +27,7 @@ namespace Infrastructure.Repos_DB
             connString = settings.DefaultConnection;
         }
 
-        private bool IsConnect()
+        public bool IsConnect(string connString)
         {
             if (connection == null)
             {
@@ -35,7 +36,6 @@ namespace Infrastructure.Repos_DB
             }
             return true;
         }
-
 
         // Tuple method
 
@@ -54,7 +54,7 @@ namespace Infrastructure.Repos_DB
         {
             List<WerkRegistratieDTO> registratieLijst = new List<WerkRegistratieDTO>();
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM volenteer_work_user";
                 using (MySqlCommand cmd = new MySqlCommand(query, connection))
@@ -103,7 +103,7 @@ namespace Infrastructure.Repos_DB
 
             WerkRegistratieDTO werkRegistratie = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM volenteer_work_user WHERE id = @id";
 
@@ -159,7 +159,7 @@ namespace Infrastructure.Repos_DB
             List<WerkRegistratieDTO> registratieLijst = new List<WerkRegistratieDTO>();
             WerkRegistratieDTO werkRegistratie = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM volenteer_work_user WHERE volenteer_work_id = @id";
 
@@ -213,7 +213,7 @@ namespace Infrastructure.Repos_DB
 
             WerkRegistratieDTO dto = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = @"INSERT INTO volenteer_work_user(id, user_id, volenteer_work_id)
                                 VALUES (@id, @user_id, @werk_id)";
@@ -264,7 +264,7 @@ namespace Infrastructure.Repos_DB
 
         public bool VerwijderWerkRegistratie(int registratieId)
         {
-            if (!IsConnect())
+            if (!IsConnect(connString))
                 return false;
 
             const string query = "DELETE FROM volenteer_work_user WHERE id = @id";

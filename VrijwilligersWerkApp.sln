@@ -3,11 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VrijwilligersWerkApp", "VrijwilligersWerkApp\VrijwilligersWerkApp.csproj", "{CB249EF0-9E78-41EB-8E3F-7FA769E435F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VrijwilligersWerkApp", "VrijwilligersWerkApp\VrijwilligersWerkApp.csproj", "{CB249EF0-9E78-41EB-8E3F-7FA769E435F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{3A1D3CAA-8462-4E78-8BBC-5921F4A9AB31}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Domain", "Domain\Domain.csproj", "{3A1D3CAA-8462-4E78-8BBC-5921F4A9AB31}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{5E55FD47-E1A7-4AC4-8240-5977E43847E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{5E55FD47-E1A7-4AC4-8240-5977E43847E7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1. UI", "1. UI", "{F33DDE68-B0F4-4986-8C8C-4F8F4C3C6CB3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2. Domain", "2. Domain", "{0E72BECB-25B0-44D3-8E0C-9D4D45AC399B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "3. Infrastructure", "3. Infrastructure", "{046C7A47-E28A-4A09-97E6-FDA19446CDD9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +36,13 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CB249EF0-9E78-41EB-8E3F-7FA769E435F8} = {F33DDE68-B0F4-4986-8C8C-4F8F4C3C6CB3}
+		{3A1D3CAA-8462-4E78-8BBC-5921F4A9AB31} = {0E72BECB-25B0-44D3-8E0C-9D4D45AC399B}
+		{5E55FD47-E1A7-4AC4-8240-5977E43847E7} = {046C7A47-E28A-4A09-97E6-FDA19446CDD9}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BAEDE4A1-D5A3-4D6C-89D0-9FD14961FBDB}
 	EndGlobalSection
 EndGlobal

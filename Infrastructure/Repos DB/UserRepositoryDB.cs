@@ -16,6 +16,7 @@ namespace Infrastructure.Repos_DB
 
         private readonly string connString;
         private MySqlConnection connection = null;
+       
 
 
         public UserRepositoryDB(DBSettings settings)
@@ -23,9 +24,8 @@ namespace Infrastructure.Repos_DB
             connString = settings.DefaultConnection;
         }
 
-        
 
-        private bool IsConnect()
+        public bool IsConnect(string connString)
         {
             if (connection == null)
             {
@@ -36,7 +36,6 @@ namespace Infrastructure.Repos_DB
         }
 
 
-
         // ophalen
 
 
@@ -44,7 +43,7 @@ namespace Infrastructure.Repos_DB
         {
             List<UserDTO> userLijst = new List<UserDTO>();
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM user";
                 using (MySqlCommand cmd = new MySqlCommand(query, connection))
@@ -92,7 +91,7 @@ namespace Infrastructure.Repos_DB
 
             UserDTO userDTO = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM user WHERE id = @id";
 
@@ -145,7 +144,7 @@ namespace Infrastructure.Repos_DB
 
             UserDTO dTO = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = @"INSERT INTO user(id, first_name, last_name )
                                 VALUES (@id, @naam, @achternaam)";
@@ -192,7 +191,7 @@ namespace Infrastructure.Repos_DB
         // Verwijder een user
         public bool VerwijderUser(int userId)
         {
-            if (!IsConnect())
+            if (!IsConnect(connString))
                 return false;
 
             const string query = "DELETE FROM user WHERE id = @id";

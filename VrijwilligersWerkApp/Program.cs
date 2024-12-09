@@ -3,6 +3,8 @@ using Domain;
 using Domain.Mapper;
 using Infrastructure.Repos_DB;
 using Infrastructure.Interfaces;
+using Domain.Vrijwilligerswerk_Test;
+using Domain.Vrijwilligerswerk_Test.Mapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,16 +27,24 @@ builder.Services.AddSingleton(new DBSettings
 builder.Services.AddScoped<IUserRepository, UserRepositoryDB>();
 builder.Services.AddScoped<IVrijwilligersWerkRepository, VrijwilligersWerkRepositoryDB>();
 builder.Services.AddScoped<IWerkRegistratieRepository, WerkRegistratieRepositoryDB>();
+builder.Services.AddScoped<IGebruikersTestRepository, GebruikersTestRepositoryDB>();
 
 //Dependency Injection domain
 builder.Services.AddScoped<IUserBeheer, UserBeheer>();
 builder.Services.AddScoped<IVrijwilligersWerkBeheer, VrijwilligersWerkBeheer>();
 builder.Services.AddScoped<IRegistratieBeheer, RegistratieBeheer>();
 
+
+// DI for User Test
+builder.Services.AddScoped<TestAlgoritme>();
+builder.Services.AddScoped<TestMapper>();
+builder.Services.AddScoped<TestBeheer>();
+
 // DI mappers
 builder.Services.AddScoped<WerkMapper>();
 builder.Services.AddScoped<UserMapper>();
 builder.Services.AddScoped<RegistratieMapper>();
+
 
 
 var app = builder.Build();

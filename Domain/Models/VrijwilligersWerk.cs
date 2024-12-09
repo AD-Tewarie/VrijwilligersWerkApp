@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domain.Vrijwilligerswerk_Test;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,7 @@ namespace Domain.Models
         private string omschrijving;
         private int maxCapaciteit;
         private int aantalRegistraties;
+        private List<Categorie> Categorieën {  get; set; } = new List<Categorie>();
 
 
 
@@ -59,6 +61,11 @@ namespace Domain.Models
             set { maxCapaciteit = value; }
         }
 
+        public List<Categorie> GetCategorieën
+        {
+            get { return Categorieën; }
+            set { Categorieën = value; }
+        }
 
     }
 }

@@ -15,7 +15,7 @@ namespace Infrastructure.Repos_DB
 
         private string connString;
         private MySqlConnection connection = null;
-
+        
 
         public VrijwilligersWerkRepositoryDB(DBSettings settings)
         {
@@ -23,7 +23,7 @@ namespace Infrastructure.Repos_DB
         }
 
 
-        private bool IsConnect()
+        public bool IsConnect(string connString)
         {
             if (connection == null)
             {
@@ -40,7 +40,7 @@ namespace Infrastructure.Repos_DB
         {
             List<VrijwilligersWerkDTO> werkLijst = new List<VrijwilligersWerkDTO>();
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM volenteer_work";
                 using (MySqlCommand cmd = new MySqlCommand(query, connection))
@@ -88,7 +88,7 @@ namespace Infrastructure.Repos_DB
 
             VrijwilligersWerkDTO vrijwilligersWerk = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = "SELECT * FROM volenteer_work WHERE id = @id";
 
@@ -142,7 +142,7 @@ namespace Infrastructure.Repos_DB
 
             VrijwilligersWerkDTO werk = null;
 
-            if (IsConnect())
+            if (IsConnect(connString))
             {
                 string query = @"INSERT INTO volenteer_work(id, title, description, max_volenteers)
                                 VALUES (@id, @title, @description, @max_volenteers)";
@@ -192,7 +192,7 @@ namespace Infrastructure.Repos_DB
         //Bewerken
         public bool BewerkVrijwilligersWerk(VrijwilligersWerkDTO updatedWerk)
         {
-            if (!IsConnect())
+            if (!IsConnect(connString))
                 return false;
 
             string query = @"UPDATE volenteer_work 
@@ -234,7 +234,7 @@ namespace Infrastructure.Repos_DB
         // Verhoog/verlaag aantal registraties
         public bool BewerkAantalRegistraties (int werkId, int wijziging) 
         {
-            if (!IsConnect())
+            if (!IsConnect(connString))
                 return false;
             // gebruik COALESCE om een null value te vervangen met 0.
             string query = @"UPDATE volenteer_work 
@@ -281,7 +281,7 @@ namespace Infrastructure.Repos_DB
 
         public bool VerwijderVrijwilligersWerk(int werkId)
         {
-            if (!IsConnect())
+            if (!IsConnect(connString))
                 return false;
 
             const string query = "DELETE FROM volenteer_work WHERE id = @id";
