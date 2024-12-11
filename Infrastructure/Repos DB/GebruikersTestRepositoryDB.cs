@@ -85,7 +85,7 @@ namespace Infrastructure.Repos_DB
 
             if (IsConnect(connString))
             {
-                string query = "SELECT id, naam FROM categories WHERE id = @id";
+                string query = "SELECT id, name FROM categories WHERE id = @id";
 
                 try
                 {
@@ -100,7 +100,7 @@ namespace Infrastructure.Repos_DB
                             {
 
                                 int categorieId = reader.GetInt32("id");
-                                string naam = reader.GetString("naam");
+                                string naam = reader.GetString("name");
 
                                 categorie = new CategorieDTO(id, naam);
                             }
@@ -124,6 +124,52 @@ namespace Infrastructure.Repos_DB
             return categorie;
 
 
+        }
+
+
+
+
+        public List<WerkCategorieDTO> GetWerkCategorieënByWerkId(int werkId)
+        {
+            var werkCategorieLijst = new List<WerkCategorieDTO>();
+
+            if (IsConnect(connString))
+            {
+                string query = "SELECT work_id, category_id FROM work_categories WHERE work_id = @werkId";
+
+                try
+                {
+                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@werkId", werkId);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                int werkIdDb = reader.GetInt32("work_id");
+                                int categorieId = reader.GetInt32("category_id");
+
+                                werkCategorieLijst.Add(new WerkCategorieDTO(werkIdDb, categorieId));
+                            }
+                        }
+                    }
+                }
+                catch (MySqlException ex)
+                {
+                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (connection != null)
+                    {
+                        connection.Close();
+                        connection = null;
+                    }
+                }
+            }
+
+            return werkCategorieLijst;
         }
 
 

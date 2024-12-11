@@ -10,8 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddRazorPages();
-builder.Services.AddSession(); 
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(); // configureer hier Session
 
 
 
@@ -38,7 +38,7 @@ builder.Services.AddScoped<IRegistratieBeheer, RegistratieBeheer>();
 // DI for User Test
 builder.Services.AddScoped<TestAlgoritme>();
 builder.Services.AddScoped<TestMapper>();
-builder.Services.AddScoped<TestBeheer>();
+builder.Services.AddScoped<ITestBeheer, TestBeheer>();
 
 // DI mappers
 builder.Services.AddScoped<WerkMapper>();
@@ -60,8 +60,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
 app.UseSession(); // Enable session middleware
+
 app.UseAuthorization();
 
 app.MapRazorPages();

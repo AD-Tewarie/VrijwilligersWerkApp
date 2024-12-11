@@ -1,4 +1,5 @@
-﻿using Domain.Mapper;
+﻿using Domain.Interfaces;
+using Domain.Mapper;
 using Domain.Models;
 using Domain.Vrijwilligerswerk_Test.Mapper;
 using Domain.Vrijwilligerswerk_Test.Models;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Domain.Vrijwilligerswerk_Test
 {
-    public class TestBeheer
+    public class TestBeheer : ITestBeheer
     {
         private readonly IGebruikersTestRepository categorieRepo;
         private readonly WerkMapper werkMapper;
@@ -32,12 +33,16 @@ namespace Domain.Vrijwilligerswerk_Test
             var categorieDTOs = categorieRepo.HaalAlleCategorieënOp();
             var vraagCategorieën = new List<VraagCategorie>();
 
+            // haal alle vragen op 
+            var alleVragenDTOs = categorieRepo.HaalAlleTestVraagOp();
+
             foreach (var categorieDTO in categorieDTOs)
             {
-                // Fetch test questions for the category
-                var vragenDTOs = categorieRepo.GetTestVraagOpCategorieId(categorieDTO.Id);
+                // Filter de vragen op categorie met lambda expressions
+                var vragenDTOs = alleVragenDTOs.Where(vraag => vraag.CategorieId == categorieDTO.Id).ToList();
                 var vragen = vragenDTOs.Select(testMapper.MapToTestVraag).ToList();
 
+                // maak vraagCategorie met de verschillende vragen per categorie
                 var vraagCategorie = new VraagCategorie(categorieDTO.Id, categorieDTO.Naam, vragen);
                 vraagCategorieën.Add(vraagCategorie);
             }
@@ -45,14 +50,20 @@ namespace Domain.Vrijwilligerswerk_Test
             return vraagCategorieën;
         }
 
+        public Categorie GetCategorieOnId(int id)
+        {
+            return testMapper.MapToCategorie(categorieRepo.GetCategorieOnId(id));
+        }
+
+
         public List<VrijwilligersWerk> HaalAlleWerkOp()
         {
             return werkMapper.MapToWerkLijst();
         }
 
-        public Dictionary<Categorie, int> BerekenTestScores(Dictionary<Categorie, int> affiniteiten, Dictionary<TestVraag, int> antwoorden)
+        public Dictionary<Categorie, int> BerekenTestScores(Dictionary<int, int> affiniteiten, Dictionary<int, int> antwoorden)
         {
-            return testAlgo.BerekenScores(affiniteiten, antwoorden);
+            return testAlgo.BerekenTestScoresUsingIds(affiniteiten, antwoorden);
         }
 
         public List<VrijwilligersWerk> FilterWerk(List<VrijwilligersWerk> werk, Dictionary<Categorie, int> gesorteerdeScores)

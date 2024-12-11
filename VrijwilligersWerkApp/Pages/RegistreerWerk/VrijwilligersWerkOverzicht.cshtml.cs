@@ -22,13 +22,13 @@ namespace VrijwilligersWerkApp.Pages.RegistreerWerk
 
         public void OnGet()
         {
-            // Fetch all job offers
+            
             werkAanbiedingen = werkBeheer.BekijkAlleWerk().ToList();
         }
 
         public IActionResult OnPostApply(int id)
         {
-            // Retrieve user ID from session
+            
             int? userId = HttpContext.Session.GetInt32("UserId");
 
             if (userId == null)
@@ -39,7 +39,7 @@ namespace VrijwilligersWerkApp.Pages.RegistreerWerk
 
             try
             {
-                // Use the userId for registration
+                
                 registratieBeheer.RegistreerGebruikerVoorWerk(userId.Value, id);
                 FeedbackMessage = "Registratie succesvol!";
                 return Page();

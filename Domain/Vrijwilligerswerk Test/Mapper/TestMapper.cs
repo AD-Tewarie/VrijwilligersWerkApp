@@ -46,5 +46,18 @@ namespace Domain.Vrijwilligerswerk_Test.Mapper
         {
             return new TestVraagDTO(vraag.Id, vraag.Tekst, vraag.CategorieId);
         }
+
+
+        public WerkCategorie MapToWerkCategorie(WerkCategorieDTO dto)
+        {
+            return new WerkCategorie(dto.WerkId, dto.CategorieId);
+        }
+
+        public List<WerkCategorie> MapToWerkCategorieList(List<WerkCategorieDTO> dto)
+        {
+            return dto.Select(MapToWerkCategorie).ToList();
+        }
+
+
     }
 }

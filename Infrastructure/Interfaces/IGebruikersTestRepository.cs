@@ -8,7 +8,7 @@ namespace Infrastructure.Interfaces
         public CategorieDTO GetCategorieOnId(int id);
         public List<TestVraagDTO> HaalAlleTestVraagOp();
         public TestVraagDTO GetTestVraagOnId(int id);
-        public List<TestVraagDTO> GetTestVraagOpCategorieId(int categorieId);
+        public List<WerkCategorieDTO> GetWerkCategorieënByWerkId(int werkId);
 
 
     }

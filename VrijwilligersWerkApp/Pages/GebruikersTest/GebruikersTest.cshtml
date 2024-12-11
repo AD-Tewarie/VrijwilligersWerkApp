@@ -1,0 +1,70 @@
+﻿@page
+@model VrijwilligersWerkApp.Pages.GebruikersTest.GebruikersTestModel
+@{
+    ViewData["Title"] = "Gebruikerstest";
+}
+
+
+
+@if (ViewData["HasPreviousResults"] != null)
+{
+    <div class="alert alert-info">
+        <p>U heeft eerdere testresultaten. Wat wilt u doen?</p>
+        <form method="post" asp-page-handler="Reset">
+            <button type="submit" class="btn btn-warning">Nieuwe Test Starten</button>
+        </form>
+        <a class="btn btn-primary" asp-page="/GebruikersTest/GebruikersTestResultaat">Resultaten Bekijken</a>
+    </div>
+}
+else{
+<div class="container mt-5">
+    @if (!Model.IsTestKlaar)
+    {
+        <h1 class="text-center">@Model.HuidigeVraag</h1>
+
+        <form method="post">
+
+            @foreach (var aff in Model.Affiniteiten)
+            {
+                <input type="hidden" name="AffiniteitenKeys" value="@aff.Key" />
+                <input type="hidden" name="AffiniteitenValues" value="@aff.Value" />
+            }
+
+            @foreach (var ant in Model.Antwoorden)
+            {
+                <input type="hidden" name="AntwoordenKeys" value="@ant.Key" />
+                <input type="hidden" name="AntwoordenValues" value="@ant.Value" />
+            }
+
+
+            <div class="d-flex justify-content-around mt-4">
+                <button class="btn btn-primary btn-lg" name="antwoord" value="1">1</button>
+                <button class="btn btn-primary btn-lg" name="antwoord" value="2">2</button>
+                <button class="btn btn-primary btn-lg" name="antwoord" value="3">3</button>
+                <button class="btn btn-primary btn-lg" name="antwoord" value="4">4</button>
+                <button class="btn btn-primary btn-lg" name="antwoord" value="5">5</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <h1 class="text-center">Test Resultaten</h1>
+
+        <h2>Gesorteerde Categorieën:</h2>
+        <ul>
+            @foreach (var score in Model.GesorteerdeScores)
+            {
+                <li>@score.Key.Naam: @score.Value</li>
+            }
+        </ul>
+
+        <h2>Aanbevolen Vacatures:</h2>
+        <ul>
+            @foreach (var werk in Model.AanbevolenWerk)
+            {
+                <li>@werk.Titel - @werk.Omschrijving</li>
+            }
+        </ul>
+    }
+</div>
+}
