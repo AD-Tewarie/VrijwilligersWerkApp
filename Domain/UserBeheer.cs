@@ -2,10 +2,10 @@
 using Domain.Mapper;
 using Domain.Models;
 using Infrastructure.Interfaces;
-using Infrastructure.Repos_DB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -26,18 +26,47 @@ namespace Domain
         }
 
 
-        // voeg user toe
-        public void VoegGebruikerToe(string naam, string achterNaam)
+        // voeg gebruiker toe
+        public void VoegGebruikerToe(string naam, string achterNaam,string email, string password)
         {
-            int userId = GenereerId();
-            var user = new User(userId, naam, achterNaam);
-            var userDTO = userMapper.MapToDTO(user); // Convert to UserDTO
+            var salt = GenereerSalt();
+            var passwordHash = HashPassword(password, salt);
+            
+            var user = new User(naam , achterNaam,email, passwordHash, salt);
+            var userDTO = userMapper.MapToDTO(user);
             repositoryDB.AddUser(userDTO);
         }
 
 
-        // haal alle users op
-        public List<User> GetAllUsers()
+
+        // valideer gebruiker
+        public bool ValideerGebruiker(string email, string password)
+        {
+            
+            var user = repositoryDB.GetUsers().FirstOrDefault(x => x.Email == email);
+
+            if (user == null) return false;
+
+            var hash = HashPassword(password, user.Salt);
+
+            return hash == user.PasswordHash;
+
+            
+        }
+
+
+
+        // haal gebruiker op naam en email
+        public User HaalGebruikerOpEmail(string email)
+        {
+            var userDTO = repositoryDB.GetUserByEmail(email);
+            var user = userMapper.MapToUser(userDTO);
+            return user;
+        }
+
+
+        // haal alle gebruikers op
+        public List<User> HaalAlleGebruikersOp()
         {
             
             var users = new List<User>();
@@ -58,21 +87,38 @@ namespace Domain
         }
 
 
-        // genereer user id
-        public int GenereerId()
-        {
-            users = userMapper.MapToUserLijst();
-            int maxId = 0;
-            foreach (var user in users)
-            {
-                if (user.UserId > maxId)
-                {
-                    maxId = user.UserId;
-                }
-            }
-            return maxId + 1;
+      
 
+
+        // Methods voor hashing en salt
+
+      
+
+        private string HashPassword (string password, string salt)
+        {
+            using (SHA256 sha256 = SHA256.Create()) 
+            {
+                var combined = Encoding.UTF8.GetBytes (salt + password);
+                var hash = sha256.ComputeHash (combined);
+                return Convert.ToBase64String (hash);
+
+            }
+            
         }
+
+
+
+        private string GenereerSalt()
+        {
+            var salt = new byte[16];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(salt);
+            }
+            return Convert.ToBase64String(salt);
+        }
+
+
 
 
     }

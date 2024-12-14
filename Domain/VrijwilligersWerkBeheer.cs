@@ -1,6 +1,7 @@
 ﻿using Domain.Interfaces;
 using Domain.Mapper;
 using Domain.Models;
+using Domain.Vrijwilligerswerk_Test;
 using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
 using System;
@@ -26,24 +27,9 @@ namespace Domain
         }
 
 
-        public int GetNieweWerkId()
-        {
-            werkLijst = werkMapper.MapToWerkLijst();
-            int maxId = 0;
-            foreach (var werk in werkLijst)
-            {
-                if (werk.WerkId > maxId)
-                {
-                    maxId = werk.WerkId;
-                }
-            }
-            maxId = maxId + 1;
-            return maxId;
-
-        }
 
         // Methode om een nieuw werk toe te voegen
-        public void VoegWerkToe(VrijwilligersWerk werk)
+        public void VoegWerkToe(VrijwilligersWerk werk, int categorieId)
         {
             var nieuwWerk = werk;
             werkLijst.Add(nieuwWerk);
@@ -52,18 +38,41 @@ namespace Domain
             var werkDTO = werkMapper.MapToDTO(nieuwWerk);
             dbRepos.AddVrijwilligersWerk(werkDTO);
 
-            
+
+            werkLijst = werkMapper.MapToWerkLijst();
+            int maxId = 0;
+            foreach (var item in werkLijst)
+            {
+                if (item.WerkId > maxId)
+                {
+                    maxId = item.WerkId;
+                }
+            }
+
+
+            KoppelCategorieAanWerk(maxId, categorieId);
+
         }
+
+        // Methode voor koppelen categorie aan vrijwilligerswerk
+
+        public void KoppelCategorieAanWerk(int werkId, int categorieId)
+        {
+            dbRepos.VoegWerkCategorieToeAanNieuweWerk(werkId, categorieId);
+        }
+
 
         // Methode voor het ophalen van een lijst van alle vrijwilligerswerk 
 
         public List<VrijwilligersWerk> BekijkAlleWerk()
         {
             var werkLijst = werkMapper.MapToWerkLijst();
-            
+
             return werkLijst;
         }
-        
+
+
+
 
         // Methode om een werk te verwijderen
         public void VerwijderWerk(int werkId)
@@ -93,7 +102,7 @@ namespace Domain
             // Sla de wijzigingen op via de repository
             dbRepos.BewerkVrijwilligersWerk(bestaandWerk);
 
-            
+
         }
 
 

@@ -1,0 +1,47 @@
+﻿@page
+@model VrijwilligersWerkApp.Pages.Login.RegistreerGebruikerModel
+@{
+    ViewData["Title"] = "Registreren";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center">Registreren</h2>
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="Naam" class="form-label">Naam</label>
+                            <input id="Naam" asp-for="Naam" class="form-control" placeholder="Voer je naam in" />
+                            <span asp-validation-for="Naam" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Achternaam" class="form-label">Achternaam</label>
+                            <input id="Achternaam" asp-for="Achternaam" class="form-control" placeholder="Voer je achternaam in" />
+                            <span asp-validation-for="Achternaam" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Email" class="form-label">Email</label>
+                            <input id="Email" asp-for="Email" class="form-control" placeholder="Voer je email in" />
+                            <span asp-validation-for="Achternaam" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Wachtwoord" class="form-label">Wachtwoord</label>
+                            <input id="Wachtwoord" asp-for="Wachtwoord" class="form-control" type="password" placeholder="Voer je wachtwoord in" />
+                            <span asp-validation-for="Wachtwoord" class="text-danger"></span>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">Registreren</button>
+                        </div>
+                    </form>
+                    <hr />
+                    <div class="text-center">
+                        <a asp-page="/Login/LoginGebruiker" class="btn btn-outline-secondary">Terug naar inloggen</a>
+                    </div>
+                    <p class="text-danger text-center mt-3">@Model.FeedbackMessage</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -11,5 +11,6 @@ namespace Domain.Interfaces
         Categorie GetCategorieOnId(int id);
         List<VraagCategorie> HaalAlleVraagCategorieënOp();
         List<VrijwilligersWerk> HaalAlleWerkOp();
+        public List<Categorie> HaalAlleCategorieënOp();
     }
 }

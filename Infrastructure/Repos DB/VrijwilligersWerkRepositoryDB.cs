@@ -187,6 +187,36 @@ namespace Infrastructure.Repos_DB
         }
 
 
+        public void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId)
+        {
+            if (IsConnect(connString))
+            {
+                string query = "INSERT INTO work_categories (work_id, category_id) VALUES (@workId, @categorieId)";
+
+                try
+                {
+                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@workId", werkId);
+                        cmd.Parameters.AddWithValue("@categorieId", categorieId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                catch (MySqlException ex)
+                {
+                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (connection != null)
+                    {
+                        connection.Close();
+                        connection = null;
+                    }
+                }
+            }
+        }
+
 
 
         //Bewerken

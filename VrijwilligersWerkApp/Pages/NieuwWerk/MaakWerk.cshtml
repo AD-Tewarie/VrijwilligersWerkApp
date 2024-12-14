@@ -5,31 +5,45 @@
 }
 
 <div class="container mt-5">
-    <h1 class="mb-4 text-center">Nieuw Vrijwilligerswerk Toevoegen</h1>
-
-    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
-    {
-        <div class="alert alert-info" role="alert">
-            @Model.FeedbackMessage
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center">Nieuw Vrijwilligerswerk</h2>
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="Titel" class="form-label">Titel</label>
+                            <input asp-for="Titel" class="form-control" placeholder="Voer de titel in" />
+                            <span asp-validation-for="Titel" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Omschrijving" class="form-label">Omschrijving</label>
+                            <textarea asp-for="Omschrijving" class="form-control" placeholder="Voer een beschrijving in"></textarea>
+                            <span asp-validation-for="Omschrijving" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="MaxCapaciteit" class="form-label">Maximale Capaciteit</label>
+                            <input asp-for="MaxCapaciteit" class="form-control" type="number" placeholder="Aantal vrijwilligers" />
+                            <span asp-validation-for="MaxCapaciteit" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="CategorieId" class="form-label">Categorie</label>
+                            <select asp-for="CategorieId" class="form-select">
+                                <option value="">Selecteer een categorie</option>
+                                @foreach (var categorie in Model.Categorieën)
+                                {
+                                    <option value="@categorie.Value">@categorie.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="CategorieId" class="text-danger"></span>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Opslaan</button>
+                        </div>
+                        <p class="text-success mt-3">@Model.FeedbackMessage</p>
+                    </form>
+                </div>
+            </div>
         </div>
-    }
-
-    <form method="post">
-        <div class="mb-3">
-            <label for="Titel" class="form-label">Titel</label>
-            <input type="text" class="form-control" id="Titel" name="Titel" value="@Model.Titel" required />
-        </div>
-
-        <div class="mb-3">
-            <label for="Omschrijving" class="form-label">Omschrijving</label>
-            <textarea class="form-control" id="Omschrijving" name="Omschrijving" rows="4" required>@Model.Omschrijving</textarea>
-        </div>
-
-        <div class="mb-3">
-            <label for="MaxCapaciteit" class="form-label">Maximale Capaciteit</label>
-            <input type="number" class="form-control" id="MaxCapaciteit" name="MaxCapaciteit" value="@Model.MaxCapaciteit" required />
-        </div>
-
-        <button type="submit" class="btn btn-primary">Toevoegen</button>
-    </form>
+    </div>
 </div>

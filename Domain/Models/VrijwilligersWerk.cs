@@ -30,6 +30,14 @@ namespace Domain.Models
             
         }
 
+        // ctor voor het toevoegen van werk
+        public VrijwilligersWerk(string titel, string omschrijving, int maxCapaciteit)
+        {
+            this.titel=titel;
+            this.omschrijving=omschrijving;
+            this.maxCapaciteit=maxCapaciteit;
+        }
+
 
         public int WerkId
         {

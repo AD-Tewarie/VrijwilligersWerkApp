@@ -71,6 +71,10 @@ namespace Domain.Vrijwilligerswerk_Test
             return testAlgo.FilterEnSorteerWerk(werk, gesorteerdeScores);
         }
 
+        public List<Categorie> HaalAlleCategorieënOp()
+        {
+            return testMapper.GetCategorieLijst();
+        }
     }
 }
 

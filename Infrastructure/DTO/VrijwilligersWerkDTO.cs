@@ -27,6 +27,12 @@ namespace Infrastructure
             
         }
 
+        public VrijwilligersWerkDTO(string titel, string omschrijving, int maxCapaciteit)
+        {
+            this.titel = titel;
+            this.omschrijving = omschrijving;
+            this.maxCapaciteit = maxCapaciteit;
+        }
 
         public int WerkId
         {

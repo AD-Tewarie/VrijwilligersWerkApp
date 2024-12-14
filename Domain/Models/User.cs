@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.BouncyCastle.Crypto.Parameters;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,20 +14,34 @@ namespace Domain.Models
         private int userId;
         private string naam;
         private string achterNaam;
+        private string passwordHash;
+        private string salt;
+        private string email;
 
 
-        public User(int userId, string naam, string achternaam)
+        public User(int userId, string naam, string achternaam, string email, string passwordHash, string salt) 
         {
             this.userId = userId;
             this.naam = naam;
             this.achterNaam = achternaam;
+            this.email = email;
+            this.passwordHash = passwordHash;
+            this.salt = salt;
         }
 
+        public User( string naam , string achterNaam,string email, string passwordHash, string salt) //ctor for adding new users
+        {
+            this.naam = naam;
+            this.achterNaam= achterNaam;
+            this.passwordHash = passwordHash;
+            this.salt = salt;
+            this.email = email;
+        }
 
         public int UserId
         {
             get { return userId; }
-            set { userId = value; }
+           
         }
 
         public string Naam
@@ -41,5 +56,24 @@ namespace Domain.Models
             set { achterNaam = value; }
         }
 
+        public string Email
+        {
+            get { return email; }
+            set { email = value; }
+
+        }
+
+        public string PasswordHash
+        {
+            get { return passwordHash; }
+            set { passwordHash = value; }
+        }
+
+        public string Salt
+        {
+            get { return salt; }
+            set { salt = value; }
+
+        }
     }
 }

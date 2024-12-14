@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Domain.Interfaces;
 using Domain.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace VrijwilligersWerkApp.Pages
 {
@@ -15,12 +16,16 @@ namespace VrijwilligersWerkApp.Pages
         }
 
         [BindProperty]
-        public string Naam { get; set; }
+        [Required(ErrorMessage = "Email is verplicht.")]
+        public string Email { get; set; }
 
         [BindProperty]
-        public string Achternaam { get; set; }
+        [Required(ErrorMessage = "Wachtwoord is verplicht.")]
+        public string Wachtwoord { get; set; }
 
         public string FeedbackMessage { get; set; }
+
+
 
         public IActionResult OnPost()
         {
@@ -28,23 +33,16 @@ namespace VrijwilligersWerkApp.Pages
             {
                 try
                 {
-                   
-                    var users = userBeheer.GetAllUsers();
-
-                   // trying linq
-                    var matchingUser = users.FirstOrDefault(
-                        u => u.Naam == Naam && u.AchterNaam == Achternaam
-                    );
-
-                    if (matchingUser != null)
+                    if (userBeheer.ValideerGebruiker(Email, Wachtwoord))
                     {
-                        
-                        HttpContext.Session.SetInt32("UserId", matchingUser.UserId);
-                        FeedbackMessage = "Succesvol ingelogd!";
-                        return RedirectToPage("/Home"); 
-                    }
+                        var user = userBeheer.HaalGebruikerOpEmail(Email);
 
-                    FeedbackMessage = "Ongeldige gebruikersnaam of achternaam.";
+                        HttpContext.Session.SetString("Gebruiker", user.Naam);    
+                        HttpContext.Session.SetInt32("UserId", user.UserId);
+                        FeedbackMessage = "Succesvol ingelogd!";
+                        return RedirectToPage("/Home");
+                    }
+                    FeedbackMessage = "Ongeldige gebruikersnaam of wachtwoord.";
                 }
                 catch (Exception ex)
                 {

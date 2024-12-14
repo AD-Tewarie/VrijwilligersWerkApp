@@ -16,7 +16,7 @@ namespace Infrastructure.Repos_DB
 
         private readonly string connString;
         private MySqlConnection connection = null;
-       
+
 
 
         public UserRepositoryDB(DBSettings settings)
@@ -57,10 +57,13 @@ namespace Infrastructure.Repos_DB
                                 int id = reader.GetInt32("id");
                                 string voornaam = reader.GetString("first_name");
                                 string achternaam = reader.GetString("last_name");
-                                
+                                string email = reader.GetString("email");
+                                string passwordHash = reader.GetString("password");
+                                string salt = reader.GetString("salt");
 
 
-                                UserDTO user = new UserDTO(id, voornaam, achternaam);
+
+                                UserDTO user = new UserDTO(id, voornaam, achternaam, email, passwordHash, salt);
                                 userLijst.Add(user);
                             }
                             reader.Close();
@@ -86,6 +89,63 @@ namespace Infrastructure.Repos_DB
         }
 
 
+
+        public UserDTO GetUserByEmail(string email)
+        {
+
+            UserDTO userDTO = null;
+
+            if (IsConnect(connString))
+            {
+                string query = "SELECT * FROM user WHERE email = @email";
+
+                try
+                {
+                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                    {
+
+                        cmd.Parameters.AddWithValue("@email", email);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+
+                                int id = reader.GetInt32("id");
+                                string voorNaam = reader.GetString("first_name");
+                                string achterNaam = reader.GetString("last_name");
+                                string passwordHash = reader.GetString("password");
+                                string salt = reader.GetString("salt");
+
+
+
+                                userDTO = new UserDTO(id, voorNaam, achterNaam, email, passwordHash, salt);
+                            }
+                        }
+                    }
+                }
+                catch (MySqlException ex)
+                {
+                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (connection != null)
+                    {
+                        connection.Close();
+                        connection = null;
+                    }
+                }
+            }
+
+            return userDTO;
+        }
+
+
+
+
+
+
         public UserDTO GetUserOnId(int id)
         {
 
@@ -109,9 +169,13 @@ namespace Infrastructure.Repos_DB
 
                                 string naam = reader.GetString("first_name");
                                 string achterNaam = reader.GetString("last_name");
-                                
+                                string email = reader.GetString("email");
+                                string passwordHash = reader.GetString("password");
+                                string salt = reader.GetString("salt");
 
-                                userDTO = new UserDTO(id ,naam, achterNaam);
+
+
+                                userDTO = new UserDTO(id, naam, achterNaam, email, passwordHash, salt);
                             }
                         }
                     }
@@ -146,20 +210,19 @@ namespace Infrastructure.Repos_DB
 
             if (IsConnect(connString))
             {
-                string query = @"INSERT INTO user(id, first_name, last_name )
-                                VALUES (@id, @naam, @achternaam)";
+                string query = @"INSERT INTO user(first_name, last_name, email, salt, password)
+                                VALUES (@naam, @achternaam,@email, @salt, @passwordHash)";
 
                 try
                 {
                     using (MySqlCommand cmd = new MySqlCommand(query, connection))
                     {
 
-
-
-                        cmd.Parameters.AddWithValue("@id", userDTO.UserId);
-                        cmd.Parameters.AddWithValue("@title", userDTO.Naam);
+                        cmd.Parameters.AddWithValue("@naam", userDTO.Naam);
                         cmd.Parameters.AddWithValue("@achternaam", userDTO.AchterNaam);
-                  
+                        cmd.Parameters.AddWithValue("email", userDTO.Email);
+                        cmd.Parameters.AddWithValue("@salt", userDTO.Salt);
+                        cmd.Parameters.AddWithValue("@passwordHash", userDTO.PasswordHash);
 
 
                         cmd.ExecuteNonQuery();

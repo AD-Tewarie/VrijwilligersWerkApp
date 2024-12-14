@@ -14,6 +14,7 @@ namespace Infrastructure.Interfaces
         public void AddUser(UserDTO userDTO);
         public bool VerwijderUser(int userId);
 
+        public UserDTO GetUserByEmail(string email);
 
     }
 }

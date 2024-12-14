@@ -28,7 +28,7 @@ namespace Domain.Mapper
 
             foreach (UserDTO dto in userDTO)
             {
-                user.Add(new User(dto.UserId, dto.Naam, dto.AchterNaam));
+                user.Add(new User(dto.UserId, dto.Naam, dto.AchterNaam,dto.Email, dto.PasswordHash, dto.Salt));
                 
 
             }
@@ -42,7 +42,10 @@ namespace Domain.Mapper
             return new User(
                 dto.UserId,
                 dto.Naam,
-                dto.AchterNaam
+                dto.AchterNaam,
+                dto.Email,
+                dto.PasswordHash,
+                dto.Salt
 
 
                 );
@@ -53,7 +56,10 @@ namespace Domain.Mapper
             return new UserDTO(
                 user.UserId,
                 user.Naam,
-                user.AchterNaam
+                user.AchterNaam,
+                user.Email,
+                user.PasswordHash,
+                user.Salt
                 );
         }
     }

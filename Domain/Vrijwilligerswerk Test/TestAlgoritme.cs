@@ -30,7 +30,7 @@ namespace Domain.Vrijwilligerswerk_Test
 
             foreach (var categorieId in affiniteiten.Keys)
             {
-                Console.WriteLine(iRepos.GetCategorieOnId(1));
+               
                 var categorie =  iRepos.GetCategorieOnId(categorieId);
                 if (categorie == null) continue;
 
@@ -55,11 +55,7 @@ namespace Domain.Vrijwilligerswerk_Test
 
         private Dictionary<Categorie, int> SorteerOpScore(Dictionary<Categorie, int> score)
         {
-            Console.WriteLine("Sorting Scores...");
-            foreach (var entry in score)
-            {
-                Console.WriteLine($"Categorie: {entry.Key.Naam}, Score: {entry.Value}");
-            }
+           
 
             var filteredScores = new Dictionary<Categorie, int>();
             var keys = new List<Categorie>(score.Keys);
@@ -80,12 +76,6 @@ namespace Domain.Vrijwilligerswerk_Test
 
                 filteredScores.Add(hoogsteCategorie, hoogsteScore);
                 keys.Remove(hoogsteCategorie);
-            }
-
-            Console.WriteLine("Sorted Scores:");
-            foreach (var entry in filteredScores)
-            {
-                Console.WriteLine($"Categorie: {entry.Key.Naam}, Score: {entry.Value}");
             }
 
             return filteredScores;

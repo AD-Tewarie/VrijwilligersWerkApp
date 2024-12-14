@@ -14,5 +14,6 @@ namespace Infrastructure.Interfaces
         public bool BewerkVrijwilligersWerk(VrijwilligersWerkDTO updatedWerk);
         public bool BewerkAantalRegistraties(int werkId, int wijziging);
         public bool VerwijderVrijwilligersWerk(int werkId);
+        public void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId);
     }
 }

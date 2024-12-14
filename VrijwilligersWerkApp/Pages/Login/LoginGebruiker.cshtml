@@ -1,33 +1,37 @@
 ﻿@page
 @model LoginModel
 @{
-    ViewData["Title"] = "Gebruiker Login";
+    ViewData["Title"] = "Inloggen";
 }
 
 <div class="container mt-5">
-    <div class="text-center">
-        <h1 class="display-4 mb-4">Gebruiker Login</h1>
-        <p class="lead">Log in om vrijwilligerswerk te beheren en te registreren.</p>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center">Inloggen</h2>
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="Email" class="form-label">Email</label>
+                            <input id="Email" asp-for="Email" class="form-control" placeholder="Voer je email in" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label for="Wachtwoord" class="form-label">Wachtwoord</label>
+                            <input id="Wachtwoord" asp-for="Wachtwoord" class="form-control" type="password" placeholder="Voer je wachtwoord in" required />
+                            <span asp-validation-for="Wachtwoord" class="text-danger"></span>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Inloggen</button>
+                        </div>
+                    </form>
+                    <hr />
+                    <div class="text-center">
+                        <a asp-page="/Login/RegistreerGebruiker" class="btn btn-outline-secondary">Nog geen account? Registreren</a>
+                    </div>
+                    <p class="text-danger text-center mt-3">@Model.FeedbackMessage</p>
+                </div>
+            </div>
+        </div>
     </div>
-
-    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
-    {
-        <div class="alert alert-info" role="alert">
-            @Model.FeedbackMessage
-        </div>
-    }
-
-    <form method="post">
-        <div class="mb-3">
-            <label for="Naam" class="form-label">Voornaam</label>
-            <input type="text" class="form-control" id="Naam" name="Naam" value="@Model.Naam" required />
-        </div>
-
-        <div class="mb-3">
-            <label for="Achternaam" class="form-label">Achternaam</label>
-            <input type="text" class="form-control" id="Achternaam" name="Achternaam" value="@Model.Achternaam" required />
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100">Inloggen</button>
-    </form>
 </div>
