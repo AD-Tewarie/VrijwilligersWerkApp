@@ -1,150 +1,144 @@
 ﻿using Domain.Interfaces;
 using Domain.Mapper;
 using Domain.Models;
+using Infrastructure.DTO;
 using Infrastructure.Interfaces;
-using Infrastructure.Repos_DB;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Domain
 {
     public class RegistratieBeheer : IRegistratieBeheer
     {
-
-
-
-        private readonly IUserRepository userRepository;
         private readonly IWerkRegistratieRepository registratieRepository;
+        private readonly IVrijwilligersWerkBeheer werkBeheer;
+        private readonly IUserBeheer userBeheer;
         private readonly IVrijwilligersWerkRepository werkRepository;
-        private readonly RegistratieMapper registratieMapper;
-        private readonly UserMapper userMapper;
-        private readonly WerkMapper werkMapper; 
+        private readonly IMapper<WerkRegistratie, WerkRegistratieDTO> mapper;
 
-
-        public RegistratieBeheer(IUserRepository uRepos, IWerkRegistratieRepository wRepos, IVrijwilligersWerkRepository vRepos,
-            RegistratieMapper regMapper, UserMapper usMapper, WerkMapper weMapper)
+        public RegistratieBeheer(
+            IWerkRegistratieRepository registratieRepository,
+            IVrijwilligersWerkRepository werkRepository,
+            IVrijwilligersWerkBeheer werkBeheer,
+            IUserBeheer userBeheer,
+            IMapper<WerkRegistratie, WerkRegistratieDTO> mapper)
         {
-            userRepository = uRepos;
-            registratieRepository = wRepos;
-            werkRepository = vRepos;
-            registratieMapper = regMapper;
-            userMapper = usMapper;
-            werkMapper = weMapper;
+            this.registratieRepository = registratieRepository ?? throw new ArgumentNullException(nameof(registratieRepository));
+            this.werkRepository = werkRepository ?? throw new ArgumentNullException(nameof(werkRepository));
+            this.werkBeheer = werkBeheer ?? throw new ArgumentNullException(nameof(werkBeheer));
+            this.userBeheer = userBeheer ?? throw new ArgumentNullException(nameof(userBeheer));
+            this.mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
 
-
-        public int NieweRegistratieId()
+        public void RegistreerGebruikerVoorWerk(int userId, int werkId)
         {
-            List<WerkRegistratie> registraties = registratieMapper.MapToDomainList();
-            int maxId = 0;
-            foreach (var reg in registraties)
+            try
             {
-                if (reg.RegistratieId > maxId)
+                var (werk, user) = HaalWerkEnGebruikerOp(werkId, userId);
+                ValideerRegistratie(werk, user);
+
+                var registratie = MaakRegistratie(werk, user);
+                SlaRegistratieOp(registratie);
+
+                // Update het aantal registraties
+                var success = werkRepository.BewerkAantalRegistraties(werkId, 1);
+                if (!success)
                 {
-                    maxId = reg.RegistratieId;
+                    throw new Exception("Kon het aantal registraties niet bijwerken.");
                 }
             }
-            return maxId + 1;
-
-        }
-
-        public List<string> HaalRegistratiesOp() 
-        {
-            
-                var regLijst = new List<string>();
-
-
-                foreach (var registraties in registratieMapper.MapToDomainList())
-                {
-                    regLijst.Add($"RegistratieID: {registraties.RegistratieId} | Vrijwilligerswerk: {registraties.VrijwilligersWerk.Titel} | Geregistreerde Gebruiker: {registraties.User.Naam}  {registraties.User.AchterNaam}");
-                }
-                return regLijst;
-           
-
-        }
-
-
-        public void RegistreerGebruikerVoorWerk(int gebruikerId, int werkId)
-        {
-            // Haal registraties op
-            var registraties = registratieMapper.MapToDomainList();
-
-            // Haal gebruiker op
-            var getUser = userRepository.GetUserOnId(gebruikerId);
-            var gebruiker = userMapper.MapToUser(getUser);
-            if (gebruiker == null)
+            catch (Exception ex)
             {
-                throw new KeyNotFoundException("Gebruiker met opgegeven ID bestaat niet.");
+                throw new Exception($"Fout bij registreren voor vrijwilligerswerk: {ex.Message}", ex);
             }
-
-            // Haal vrijwilligerswerk op
-            var werk = werkMapper.MapToVrijwilligerswerk( werkRepository.GetWerkOnId(werkId));
-            if (werk == null)
-            {
-                throw new KeyNotFoundException("Vrijwilligerswerk met opgegeven ID bestaat niet.");
-            }
-
-            // Controleer capaciteit
-            if (werk.Aantalregistraties >= werk.MaxCapaciteit)
-            {
-                throw new InvalidOperationException("Maximale capaciteit voor dit vrijwilligerswerk is bereikt.");
-            }
-
-            // Controleer op dubbele registratie
-            foreach (var reg in registraties)
-            {
-                if (reg.VrijwilligersWerk.WerkId == werkId && reg.User.UserId == gebruikerId)
-                {
-                    throw new InvalidOperationException("Deze gebruiker is al geregistreerd voor dit vrijwilligerswerk.");
-                }
-            }
-
-            // Maak en voeg de registratie toe
-            var registratie = new WerkRegistratie(werk, gebruiker, NieweRegistratieId() );
-            registratieRepository.AddWerkRegistratie(registratieMapper.MapToDTO( registratie));
-
-            // Update aantal registraties
-            int wijziging = 1;
-            werkRepository.BewerkAantalRegistraties(werkId, wijziging);
-
-            
         }
 
         public void VerwijderRegistratie(int registratieId)
         {
-            // Haal registratie op via de repository
-            var registratie = registratieRepository.GetRegistratieOnId(registratieId);
-            if (registratie == null)
+            try
             {
-                throw new InvalidOperationException("Registratie niet gevonden.");
-                
-            }
+                var registratie = HaalRegistratieOp(registratieId);
+                if (registratie == null)
+                {
+                    throw new Exception("Registratie niet gevonden.");
+                }
 
-            // Haal het gekoppelde vrijwilligerswerk op via de WerkId in de registratie
-            var werk = werkRepository.GetWerkOnId(registratie.VrijwilligersWerk.WerkId);
-            if (werk != null)
-            {
-                // Verminder het aantal registraties
-                int wijziging = -1;
-                werkRepository.BewerkAantalRegistraties(werk.WerkId, wijziging);
-            }
-            else
-            {
-                throw new InvalidOperationException("Gekoppeld vrijwilligerswerk niet gevonden.");
-            }
+                var werkId = registratie.VrijwilligersWerk.WerkId;
 
-            // Verwijder registratie via de repository
-            registratieRepository.VerwijderWerkRegistratie(registratieId);
-            
+                // Eerst de registratie verwijderen
+                var verwijderSuccess = registratieRepository.VerwijderWerkRegistratie(registratieId);
+                if (!verwijderSuccess)
+                {
+                    throw new Exception("Kon de registratie niet verwijderen.");
+                }
+
+                // Dan het aantal registraties updaten
+                var updateSuccess = werkRepository.BewerkAantalRegistraties(werkId, -1);
+                if (!updateSuccess)
+                {
+                    // In dit geval zouden we eigenlijk een compenserende actie moeten uitvoeren
+                    // omdat de registratie al verwijderd is maar de telling niet updated
+                    throw new Exception("Kon het aantal registraties niet bijwerken.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Fout bij verwijderen van registratie: {ex.Message}", ex);
+            }
         }
 
-       
+        private (VrijwilligersWerk werk, User user) HaalWerkEnGebruikerOp(int werkId, int userId)
+        {
+            var werk = werkBeheer.HaalWerkOpID(werkId);
+            if (werk == null)
+                throw new KeyNotFoundException("Vrijwilligerswerk niet gevonden.");
 
+            var user = userBeheer.HaalGebruikerOpID(userId);
+            if (user == null)
+                throw new KeyNotFoundException("Gebruiker niet gevonden.");
 
+            return (werk, user);
+        }
 
+        private void ValideerRegistratie(VrijwilligersWerk werk, User user)
+        {
+            var bestaandeRegistraties = HaalRegistratiesOp();
+            if (bestaandeRegistraties.Any(r =>
+                r.VrijwilligersWerk.WerkId == werk.WerkId &&
+                r.User.UserId == user.UserId))
+            {
+                throw new InvalidOperationException("Gebruiker is al geregistreerd voor dit werk.");
+            }
+
+            if (werk.AantalRegistraties >= werk.MaxCapaciteit)
+            {
+                throw new InvalidOperationException("Maximum capaciteit is bereikt.");
+            }
+        }
+
+        private WerkRegistratie MaakRegistratie(VrijwilligersWerk werk, User user)
+        {
+            return WerkRegistratie.MaakNieuw(werk, user);
+        }
+
+        private void SlaRegistratieOp(WerkRegistratie registratie)
+        {
+            var registratieDto = mapper.MapToDTO(registratie);
+            registratieRepository.AddWerkRegistratie(registratieDto);
+        }
+
+        public List<WerkRegistratie> HaalRegistratiesOp()
+        {
+            var dtos = registratieRepository.GetWerkRegistraties();
+            return dtos.Select(dto => mapper.MapToDomain(dto)).ToList();
+        }
+
+        public WerkRegistratie HaalRegistratieOp(int registratieId)
+        {
+            var registratieDto = registratieRepository.GetRegistratieOnId(registratieId);
+            if (registratieDto == null)
+                throw new KeyNotFoundException("Registratie niet gevonden.");
+
+            return mapper.MapToDomain(registratieDto);
+        }
     }
 
 }

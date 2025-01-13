@@ -1,49 +1,46 @@
-﻿using Infrastructure.DTO;
-using Infrastructure;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Domain.Models
+﻿namespace Domain.Models
 {
     public class WerkRegistratie
     {
 
 
-        private VrijwilligersWerk vrijwilligersWerk;
+        public int RegistratieId { get; private set; }
+        public VrijwilligersWerk VrijwilligersWerk { get; private set; }
+        public User User { get; private set; }
 
-        private User user;
-
-        private int registratieId;
-
-
-
-        public WerkRegistratie(VrijwilligersWerk vrijwilligersWerk, User user, int registratieId)
+        private WerkRegistratie(VrijwilligersWerk vrijwilligersWerk, User user)
         {
-            this.vrijwilligersWerk = vrijwilligersWerk;
-            this.user = user;
-            this.registratieId = registratieId;
+            ValideerRegistratie(vrijwilligersWerk, user);
+
+            VrijwilligersWerk = vrijwilligersWerk;
+            User = user;
+          
         }
 
-
-        public int RegistratieId
+        public static WerkRegistratie MaakNieuw(VrijwilligersWerk vrijwilligersWerk, User user)
         {
-            get { return registratieId; }
-            set { registratieId = value; }
+            return new WerkRegistratie(vrijwilligersWerk, user);
         }
 
-        public VrijwilligersWerk VrijwilligersWerk
+        public static WerkRegistratie LaadVanuitDatabase(int registratieId, VrijwilligersWerk vrijwilligersWerk, User user)
         {
-            get { return vrijwilligersWerk; }
-            set { vrijwilligersWerk = value; }
+            var registratie = new WerkRegistratie(vrijwilligersWerk, user);
+            registratie.RegistratieId = registratieId;
+            return registratie;
         }
 
-        public User User
+        private static void ValideerRegistratie(VrijwilligersWerk vrijwilligersWerk, User user)
         {
-            get { return user; }
-            set { user = value; }
+            var fouten = new List<string>();
+
+            if (vrijwilligersWerk == null)
+                fouten.Add("Vrijwilligerswerk is verplicht.");
+
+            if (user == null)
+                fouten.Add("Gebruiker is verplicht.");
+
+            if (fouten.Any())
+                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
         }
 
     }

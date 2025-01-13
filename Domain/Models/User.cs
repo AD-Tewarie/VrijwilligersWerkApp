@@ -1,79 +1,116 @@
-﻿using Org.BouncyCastle.Crypto.Parameters;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.PasswordStrategy;
+using Domain.WachtwoordStrategy;
 
 namespace Domain.Models
 {
     public class User
     {
+        private readonly IWachtwoordStrategy wachtwoordStrategy;
+        private WachtwoordData WachtwoordData { get; set; }
+
+        public int UserId { get; private set; }
+        public string Naam { get; private set; }
+        public string AchterNaam { get; private set; }
+        public string Email { get; private set; }
+        public string PasswordHash => WachtwoordData.Hash;
+        public string Salt => WachtwoordData.Salt;
+
+        
 
 
-        private int userId;
-        private string naam;
-        private string achterNaam;
-        private string passwordHash;
-        private string salt;
-        private string email;
 
-
-        public User(int userId, string naam, string achternaam, string email, string passwordHash, string salt) 
+        private User(
+            string naam,
+            string achterNaam,
+            string email,
+            IWachtwoordStrategy wachtwoordStrategy)
         {
-            this.userId = userId;
-            this.naam = naam;
-            this.achterNaam = achternaam;
-            this.email = email;
-            this.passwordHash = passwordHash;
-            this.salt = salt;
+            this.wachtwoordStrategy = wachtwoordStrategy ?? throw new ArgumentNullException(nameof(wachtwoordStrategy));
+            WijzigDetails(naam, achterNaam, email);
         }
 
-        public User( string naam , string achterNaam,string email, string passwordHash, string salt) //ctor for adding new users
+        // Factory method voor nieuwe gebruikers
+        public static User MaakNieuw(
+            string naam,
+            string achterNaam,
+            string email,
+            string wachtwoord,
+            IWachtwoordStrategy wachtwoordStrategy)
         {
-            this.naam = naam;
-            this.achterNaam= achterNaam;
-            this.passwordHash = passwordHash;
-            this.salt = salt;
-            this.email = email;
+            var user = new User(naam, achterNaam, email, wachtwoordStrategy);
+            user.SetWachtwoord(wachtwoord);
+            return user;
         }
 
-        public int UserId
+        // Factory method voor bestaande gebruikers
+        public static User LaadVanuitDatabase(
+            int userId,
+            string naam,
+            string achterNaam,
+            string email,
+            string passwordHash,
+            string salt,
+            IWachtwoordStrategy wachtwoordStrategy)
         {
-            get { return userId; }
-           
+            var user = new User(naam, achterNaam, email, wachtwoordStrategy);
+            user.WachtwoordData = new WachtwoordData(passwordHash, salt);
+            user.UserId = userId;
+            return user;
         }
 
-        public string Naam
+        public void WijzigDetails(string naam, string achterNaam, string email)
         {
-            get { return naam; }
-            set { naam = value; }
+            ValideerGebruiker(naam, achterNaam, email);
+
+            Naam = naam;
+            AchterNaam = achterNaam;
+            Email = email;
         }
 
-        public string AchterNaam
+        private static void ValideerGebruiker(string naam, string achterNaam, string email)
         {
-            get { return achterNaam; }
-            set { achterNaam = value; }
+            var fouten = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(naam))
+                fouten.Add("Naam is verplicht.");
+
+            if (string.IsNullOrWhiteSpace(achterNaam))
+                fouten.Add("Achternaam is verplicht.");
+
+            if (string.IsNullOrWhiteSpace(email))
+                fouten.Add("Email is verplicht.");
+
+            if (!IsGeldigEmailAdres(email))
+                fouten.Add("Email is niet geldig.");
+
+            if (fouten.Any())
+                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
         }
 
-        public string Email
+        private static bool IsGeldigEmailAdres(string email)
         {
-            get { return email; }
-            set { email = value; }
-
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
-        public string PasswordHash
+        private void SetWachtwoord(string wachtwoord)
         {
-            get { return passwordHash; }
-            set { passwordHash = value; }
+            if (string.IsNullOrWhiteSpace(wachtwoord))
+                throw new ArgumentException("Wachtwoord mag niet leeg zijn.");
+
+            WachtwoordData = wachtwoordStrategy.Hash(wachtwoord);
         }
 
-        public string Salt
+        public bool ValideerWachtwoord(string wachtwoord)
         {
-            get { return salt; }
-            set { salt = value; }
-
+            return wachtwoordStrategy.Valideer(wachtwoord, WachtwoordData);
         }
     }
 }

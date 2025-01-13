@@ -8,30 +8,14 @@ namespace Infrastructure.DTO.Vrijwilligerswerk_Test
 {
     public class WerkCategorieDTO
     {
-        private int werkId { get; set; }
-        private int categorieId { get; set; }
+        public int WerkId { get; set; }
+        public int CategorieId { get; set; }
 
         public WerkCategorieDTO(int werkId, int categorieId)
         {
-            this.werkId = werkId;
-            this.categorieId = categorieId;
+            WerkId = werkId;
+            CategorieId = categorieId;
         }
-
-        public int WerkId
-        {
-            get { return werkId; }
-            set { werkId = value; }
-
-        }
-
-        public int CategorieId
-        {
-            get { return categorieId; }
-            set { categorieId = value; }
-
-        }
-
-
 
     }
 }

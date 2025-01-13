@@ -9,12 +9,11 @@ namespace Infrastructure.Interfaces
 {
     public interface IUserRepository
     {
-        public List<UserDTO> GetUsers();
-        public UserDTO GetUserOnId(int id);
-        public void AddUser(UserDTO userDTO);
-        public bool VerwijderUser(int userId);
-
-        public UserDTO GetUserByEmail(string email);
+        List<UserDTO> GetUsers();
+        UserDTO GetUserByEmail(string email);
+        UserDTO GetUserOnId(int id);
+        void AddUser(UserDTO userDTO);
+        bool VerwijderUser(int userId);
 
     }
 }

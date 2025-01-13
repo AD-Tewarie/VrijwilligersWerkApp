@@ -8,34 +8,15 @@ namespace Infrastructure.DTO.Vrijwilligerswerk_Test
 {
     public class TestVraagDTO
     {
-        private int id { get; set; }
-        private string tekst { get; set; }
-        private int categorieId { get; set; }
+        public int Id { get; set; }
+        public string Tekst { get; set; }
+        public int CategorieId { get; set; }
 
         public TestVraagDTO(int id, string tekst, int categorieId)
         {
-            this.id = id;
-            this.tekst = tekst;
-            this.categorieId = categorieId;
-        }
-
-        public int Id
-        {
-            get { return id; }
-            set { id = value; }
-        }
-
-
-        public string Tekst
-        {
-            get { return tekst; }
-            set { tekst = value; }
-        }
-
-        public int CategorieId
-        {
-            get { return categorieId; }
-            set { categorieId = value; }
+            Id = id;
+            Tekst = tekst;
+            CategorieId = categorieId;
         }
 
 

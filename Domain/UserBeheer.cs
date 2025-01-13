@@ -1,125 +1,144 @@
 ﻿using Domain.Interfaces;
 using Domain.Mapper;
 using Domain.Models;
+using Domain.WachtwoordStrategy;
+using Infrastructure.DTO;
 using Infrastructure.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Domain
 {
     public class UserBeheer : IUserBeheer
     {
+        private readonly IUserRepository repository;
+        private readonly IMapper<User, UserDTO> mapper;
+        private readonly IWachtwoordStrategy wachtwoordStrategy;
 
- 
-        private IUserRepository repositoryDB;
-        private List<User> users = new List<User>();
-        private readonly UserMapper userMapper;
-
-        public UserBeheer(IUserRepository userRepository, UserMapper userMap)
+        public UserBeheer(
+            IUserRepository repository,
+            IMapper<User, UserDTO> mapper,
+            IWachtwoordStrategy wachtwoordStrategy)
         {
-            repositoryDB = userRepository;
-            userMapper = userMap;
+            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            this.mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            this.wachtwoordStrategy = wachtwoordStrategy ?? throw new ArgumentNullException(nameof(wachtwoordStrategy));
         }
 
-
-        // voeg gebruiker toe
-        public void VoegGebruikerToe(string naam, string achterNaam,string email, string password)
+        public void VoegGebruikerToe(string naam, string achterNaam, string email, string wachtwoord)
         {
-            var salt = GenereerSalt();
-            var passwordHash = HashPassword(password, salt);
-            
-            var user = new User(naam , achterNaam,email, passwordHash, salt);
-            var userDTO = userMapper.MapToDTO(user);
-            repositoryDB.AddUser(userDTO);
+            ValideerUniekeEmail(email);
+            ValideerGebruikerGegevens(naam, achterNaam, email, wachtwoord);
+
+            var user = MaakNieuweGebruiker(naam, achterNaam, email, wachtwoord);
+            SlaGebruikerOp(user);
         }
 
-
-
-        // valideer gebruiker
-        public bool ValideerGebruiker(string email, string password)
+        private void ValideerGebruikerGegevens(string naam, string achterNaam, string email, string wachtwoord)
         {
-            
-            var user = repositoryDB.GetUsers().FirstOrDefault(x => x.Email == email);
+            var fouten = new List<string>();
 
-            if (user == null) return false;
+            if (string.IsNullOrWhiteSpace(naam))
+                fouten.Add("Naam is verplicht.");
+            if (string.IsNullOrWhiteSpace(achterNaam))
+                fouten.Add("Achternaam is verplicht.");
+            if (string.IsNullOrWhiteSpace(email))
+                fouten.Add("Email is verplicht.");
+            if (string.IsNullOrWhiteSpace(wachtwoord))
+                fouten.Add("Wachtwoord is verplicht.");
 
-            var hash = HashPassword(password, user.Salt);
-
-            return hash == user.PasswordHash;
-
-            
+            if (fouten.Any())
+                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
         }
 
-
-
-        // haal gebruiker op naam en email
-        public User HaalGebruikerOpEmail(string email)
+        private void ValideerUniekeEmail(string email)
         {
-            var userDTO = repositoryDB.GetUserByEmail(email);
-            var user = userMapper.MapToUser(userDTO);
-            return user;
+            var bestaandeUser = repository.GetUserByEmail(email);
+            if (bestaandeUser != null)
+            {
+                throw new InvalidOperationException("Er bestaat al een gebruiker met dit emailadres.");
+            }
         }
 
+        private User MaakNieuweGebruiker(string naam, string achterNaam, string email, string wachtwoord)
+        {
+            return User.MaakNieuw(naam, achterNaam, email, wachtwoord, wachtwoordStrategy);
+        }
 
-        // haal alle gebruikers op
+        private void SlaGebruikerOp(User user)
+        {
+            var userDto = mapper.MapToDTO(user);
+            repository.AddUser(userDto);
+        }
+
         public List<User> HaalAlleGebruikersOp()
         {
-            
-            var users = new List<User>();
-
-            foreach (var user in userMapper.MapToUserLijst())
-            {
-                users.Add(user);
-            }
-
-            return users;
+            var dtos = repository.GetUsers();
+            return MapGebruikers(dtos);
         }
 
+        private List<User> MapGebruikers(IEnumerable<UserDTO> dtos)
+        {
+            return dtos.Select(dto => mapper.MapToDomain(dto)).ToList();
+        }
 
-        // verwijder gebruiker
+        public User HaalGebruikerOpID(int userId)
+        {
+            ValideerGebruikerID(userId);
+            var dto = repository.GetUserOnId(userId);
+            return dto == null ? null : mapper.MapToDomain(dto);
+        }
+
+        private void ValideerGebruikerID(int userId)
+        {
+            if (userId <= 0)
+                throw new ArgumentException("Gebruiker ID moet groter zijn dan 0.");
+        }
+
+        public User HaalGebruikerOpEmail(string email)
+        {
+            ValideerEmail(email);
+            var dto = repository.GetUserByEmail(email);
+            return dto == null ? null : mapper.MapToDomain(dto);
+        }
+
+        private void ValideerEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Email mag niet leeg zijn.");
+        }
+
+        public bool ValideerGebruiker(string email, string wachtwoord)
+        {
+            ValideerInlogGegevens(email, wachtwoord);
+            var user = HaalGebruikerOpEmail(email);
+            return user?.ValideerWachtwoord(wachtwoord) ?? false;
+        }
+
+        private void ValideerInlogGegevens(string email, string wachtwoord)
+        {
+            var fouten = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(email))
+                fouten.Add("Email is verplicht.");
+            if (string.IsNullOrWhiteSpace(wachtwoord))
+                fouten.Add("Wachtwoord is verplicht.");
+
+            if (fouten.Any())
+                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
+        }
+
         public void VerwijderGebruiker(int userId)
         {
-            repositoryDB.VerwijderUser(userId);
+            ValideerGebruikerID(userId);
+            ControleerGebruikerBestaat(userId);
+            repository.VerwijderUser(userId);
         }
 
-
-      
-
-
-        // Methods voor hashing en salt
-
-      
-
-        private string HashPassword (string password, string salt)
+        private void ControleerGebruikerBestaat(int userId)
         {
-            using (SHA256 sha256 = SHA256.Create()) 
-            {
-                var combined = Encoding.UTF8.GetBytes (salt + password);
-                var hash = sha256.ComputeHash (combined);
-                return Convert.ToBase64String (hash);
-
-            }
-            
+            var user = HaalGebruikerOpID(userId);
+            if (user == null)
+                throw new KeyNotFoundException($"Gebruiker met ID {userId} niet gevonden.");
         }
-
-
-
-        private string GenereerSalt()
-        {
-            var salt = new byte[16];
-            using (var rng = RandomNumberGenerator.Create())
-            {
-                rng.GetBytes(salt);
-            }
-            return Convert.ToBase64String(salt);
-        }
-
-
-
 
     }
 }

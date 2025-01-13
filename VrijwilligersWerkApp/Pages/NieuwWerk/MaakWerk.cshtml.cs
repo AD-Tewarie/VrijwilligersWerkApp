@@ -12,84 +12,85 @@ namespace VrijwilligersWerkApp.Pages.NieuwWerk
     public class MaakWerkModel : PageModel
     {
         private readonly IVrijwilligersWerkBeheer werkBeheer;
-        private readonly ITestBeheer testbeheer;
+        private readonly ITestBeheer testBeheer;
 
         [BindProperty]
-        [Required(ErrorMessage = "Titel is verplicht.")]
         public string Titel { get; set; }
 
         [BindProperty]
-        [Required(ErrorMessage = "Omschrijving is verplicht.")]
         public string Omschrijving { get; set; }
 
         [BindProperty]
-        [Required(ErrorMessage = "Maximale capaciteit is verplicht.")]
         public int MaxCapaciteit { get; set; }
 
         [BindProperty]
-        [Required(ErrorMessage = "Categorie is verplicht.")]
         public int CategorieId { get; set; }
 
-        public List<SelectListItem> Categorieën { get; set; }
-
-        public string FeedbackMessage { get; set; }
+        public List<SelectListItem> Categorieën { get; private set; }
 
         public MaakWerkModel(IVrijwilligersWerkBeheer werkBeheer, ITestBeheer testBeheer)
         {
             this.werkBeheer = werkBeheer;
-            this.testbeheer = testBeheer;
+            this.testBeheer = testBeheer;
         }
 
-       
-
-        public void OnGet()
+        public IActionResult OnGet()
         {
-            LaadCategorieën();
-        }
-
-        
-
-
-        public IActionResult OnPost()
-        {
-            if (ModelState.IsValid)
-            {
-                try
-                {
-
-                    var werk = new VrijwilligersWerk(Titel, Omschrijving, MaxCapaciteit);
-                    
-                    werkBeheer.VoegWerkToe(werk, CategorieId);
-                    FeedbackMessage = "Vrijwilligerswerk succesvol toegevoegd!";
-                    LaadCategorieën();
-                    return Page();
-                }
-                catch (Exception ex)
-                {
-                    FeedbackMessage = $"Er is een fout opgetreden: {ex.Message}";
-                    LaadCategorieën();
-                    return Page();
-                }
-            }
-
             LaadCategorieën();
             return Page();
-
-            
         }
 
+        public IActionResult OnPostCreateWork()
+        {
+            if (!ModelState.IsValid)
+            {
+                LaadCategorieën();
+                return Page();
+            }
 
-        // Methode voor het laden van de categorieën voor form select
+            try
+            {
+                var werk = VrijwilligersWerk.MaakNieuw(Titel, Omschrijving, MaxCapaciteit);
+                werkBeheer.VoegWerkToe(werk, CategorieId);
+
+                TempData["SuccessMessage"] = "Vrijwilligerswerk succesvol toegevoegd!";
+
+                // Use strong redirect to prevent form resubmission
+                return new RedirectToPageResult("/RegistreerWerk/VrijwilligersWerkOverzicht");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Er is een fout opgetreden: {ex.Message}";
+                LaadCategorieën();
+                return Page();
+            }
+        }
 
         private void LaadCategorieën()
         {
-            Categorieën = testbeheer.HaalAlleCategorieënOp()
-                                                 .Select(item => new SelectListItem
-                                                 {
-                                                     Value = item.Id.ToString(),
-                                                     Text = item.Naam.ToString()
-                                                 })
-                                                 .ToList();
+            try
+            {
+                Categorieën = testBeheer.HaalAlleCategorieënOp()
+                    .Select(c => new SelectListItem
+                    {
+                        Value = c.Id.ToString(),
+                        Text = c.Naam
+                    })
+                    .ToList();
+
+                Categorieën.Insert(0, new SelectListItem
+                {
+                    Value = "",
+                    Text = "-- Selecteer een categorie --",
+                    Selected = true
+                });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, $"Fout bij het laden van categorieën: {ex.Message}");
+                Categorieën = new List<SelectListItem>();
+            }
         }
     }
 }
+

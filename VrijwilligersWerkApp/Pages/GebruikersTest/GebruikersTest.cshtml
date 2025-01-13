@@ -1,70 +1,87 @@
 ﻿@page
 @model VrijwilligersWerkApp.Pages.GebruikersTest.GebruikersTestModel
 @{
-    ViewData["Title"] = "Gebruikerstest";
+    ViewData["Title"] = "Gebruikers Test";
 }
 
-
-
-@if (ViewData["HasPreviousResults"] != null)
-{
-    <div class="alert alert-info">
-        <p>U heeft eerdere testresultaten. Wat wilt u doen?</p>
-        <form method="post" asp-page-handler="Reset">
-            <button type="submit" class="btn btn-warning">Nieuwe Test Starten</button>
-        </form>
-        <a class="btn btn-primary" asp-page="/GebruikersTest/GebruikersTestResultaat">Resultaten Bekijken</a>
-    </div>
-}
-else{
 <div class="container mt-5">
-    @if (!Model.IsTestKlaar)
-    {
-        <h1 class="text-center">@Model.HuidigeVraag</h1>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h1 class="card-title text-center mb-4">Gebruikers Test</h1>
 
-        <form method="post">
+                    @if (ViewData["HasPreviousResults"] != null)
+                    {
+                        <div class="text-center mb-4">
+                            <p class="lead">Je hebt al eerdere testresultaten. Wil je opnieuw beginnen?</p>
+                            <form method="post" asp-page-handler="Reset">
+                                <button type="submit" class="btn btn-warning">Test Opnieuw Starten</button>
+                            </form>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="progress mb-4">
+                            <div class="progress-bar" role="progressbar"
+                                 style="width: @Model.VoortgangPercentage%"
+                                 aria-valuenow="@Model.VoortgangPercentage"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                                @Model.VoortgangPercentage%
+                            </div>
+                        </div>
 
-            @foreach (var aff in Model.Affiniteiten)
-            {
-                <input type="hidden" name="AffiniteitenKeys" value="@aff.Key" />
-                <input type="hidden" name="AffiniteitenValues" value="@aff.Value" />
-            }
+                        <h2 class="h4 mb-4">@Model.HuidigeVraag</h2>
 
-            @foreach (var ant in Model.Antwoorden)
-            {
-                <input type="hidden" name="AntwoordenKeys" value="@ant.Key" />
-                <input type="hidden" name="AntwoordenValues" value="@ant.Value" />
-            }
+                        <form method="post" class="needs-validation" novalidate>
+                            <div class="form-group mb-4">
+                                <div class="btn-group d-flex" role="group">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <input type="radio" class="btn-check" name="antwoord"
+                                               id="antwoord@(i)" value="@i" required>
+                                        <label class="btn btn-outline-primary" for="antwoord@(i)">
+                                            @GetAntwoordLabel(i)
+                                        </label>
+                                    }
+                                </div>
+                            </div>
 
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    @(Model.IsLaatsteVraag ? "Afronden" : "Volgende")
+                                </button>
+                            </div>
+                        </form>
+                    }
 
-            <div class="d-flex justify-content-around mt-4">
-                <button class="btn btn-primary btn-lg" name="antwoord" value="1">1</button>
-                <button class="btn btn-primary btn-lg" name="antwoord" value="2">2</button>
-                <button class="btn btn-primary btn-lg" name="antwoord" value="3">3</button>
-                <button class="btn btn-primary btn-lg" name="antwoord" value="4">4</button>
-                <button class="btn btn-primary btn-lg" name="antwoord" value="5">5</button>
+                    @if (Model.IsTestKlaar)
+                    {
+                        <div class="alert alert-success mt-4">
+                            <h3 class="h5">Test Voltooid!</h3>
+                            <p>Je kunt nu je resultaten bekijken.</p>
+                            <a href="/GebruikersTest/GebruikersTestResultaat"
+                               class="btn btn-success">Bekijk Resultaten</a>
+                        </div>
+                    }
+                </div>
             </div>
-        </form>
-    }
-    else
-    {
-        <h1 class="text-center">Test Resultaten</h1>
-
-        <h2>Gesorteerde Categorieën:</h2>
-        <ul>
-            @foreach (var score in Model.GesorteerdeScores)
-            {
-                <li>@score.Key.Naam: @score.Value</li>
-            }
-        </ul>
-
-        <h2>Aanbevolen Vacatures:</h2>
-        <ul>
-            @foreach (var werk in Model.AanbevolenWerk)
-            {
-                <li>@werk.Titel - @werk.Omschrijving</li>
-            }
-        </ul>
-    }
+        </div>
+    </div>
 </div>
+
+@functions {
+    private string GetAntwoordLabel(int value)
+    {
+        return value switch
+        {
+            1 => "Helemaal oneens",
+            2 => "Oneens",
+            3 => "Neutraal",
+            4 => "Eens",
+            5 => "Helemaal eens",
+            _ => string.Empty
+        };
+    }
 }

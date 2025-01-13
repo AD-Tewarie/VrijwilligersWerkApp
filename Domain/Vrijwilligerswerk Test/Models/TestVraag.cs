@@ -1,43 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Domain.Vrijwilligerswerk_Test.Models
+﻿namespace Domain.Vrijwilligerswerk_Test.Models
 {
     public class TestVraag
     {
-        private int id { get; set; }
-        private string tekst { get; set; }
-        private int categorieId { get; set; }
+        public int Id { get; private set; }
+        public string Tekst { get; private set; }
+        public int CategorieId { get; private set; }
 
-        public TestVraag(int id, string tekst, int categorieId )
+        private TestVraag(int id, string tekst, int categorieId)
         {
-            this.id = id;
-            this.tekst = tekst;
-            this.categorieId = categorieId;
+            ValideerTestVraag(tekst);
+            Id = id;
+            Tekst = tekst;
+            CategorieId = categorieId;
         }
 
-        public int Id
+        public static TestVraag Maak(int id, string tekst, int categorieId)
         {
-            get { return id; }
-            set { id = value; }
+            return new TestVraag(id, tekst, categorieId);
         }
 
-
-        public string Tekst
+        private static void ValideerTestVraag(string tekst)
         {
-            get { return tekst; }
-            set { tekst = value; }
+            if (string.IsNullOrWhiteSpace(tekst))
+                throw new ArgumentException("Tekst mag niet leeg zijn.");
         }
-
-        public int CategorieId
-        {
-            get { return categorieId; }
-            set { categorieId = value; }
-        }
-
-
     }
 }

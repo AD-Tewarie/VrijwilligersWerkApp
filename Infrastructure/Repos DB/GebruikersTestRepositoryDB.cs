@@ -60,7 +60,8 @@ namespace Infrastructure.Repos_DB
                     }
                     catch (MySqlException ex)
                     {
-                        Console.WriteLine($"Query uitvoering mislukt: {ex.Message}");
+                        File.AppendAllText("error.log", $"Fout bij ophalen categorieën: {ex.Message}" + Environment.NewLine);
+                        throw new Exception($"Kon categorieën niet ophalen", ex);
                     }
                     finally
                     {
@@ -109,7 +110,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen categorie: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon categorie niet ophalen", ex);
                 }
                 finally
                 {
@@ -157,7 +159,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen categorieën: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon categorieën niet ophalen", ex);
                 }
                 finally
                 {
@@ -203,7 +206,8 @@ namespace Infrastructure.Repos_DB
                     }
                     catch (MySqlException ex)
                     {
-                        Console.WriteLine($"Query uitvoering mislukt: {ex.Message}");
+                        File.AppendAllText("error.log", $"Fout bij ophalen testvragen: {ex.Message}" + Environment.NewLine);
+                        throw new Exception($"Kon testvragen niet ophalen", ex);
                     }
                     finally
                     {
@@ -256,7 +260,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen testvraag: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon testvraag niet ophalen", ex);
                 }
                 finally
                 {
@@ -313,7 +318,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen testvraag: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon testvraag niet ophalen", ex);
                 }
                 finally
                 {

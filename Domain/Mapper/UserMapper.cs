@@ -7,52 +7,24 @@ using System.Threading.Tasks;
 using Infrastructure.DTO;
 using Infrastructure.Repos_DB;
 using Infrastructure.Interfaces;
+using Domain.WachtwoordStrategy;
 
 namespace Domain.Mapper
 {
-    public class UserMapper
+    public class UserMapper : IMapper<User, UserDTO>
     {
-        private  IUserRepository userRepo;
+        private readonly IWachtwoordStrategy wachtwoordStrategy;
 
-
-        public UserMapper(IUserRepository repos)
+        public UserMapper(IWachtwoordStrategy wachtwoordStrategy)
         {
-            userRepo = repos;
-        }
-
-
-        public List<User> MapToUserLijst()
-        {
-            List<User> user = new List<User>();
-            List<UserDTO> userDTO = userRepo.GetUsers();
-
-            foreach (UserDTO dto in userDTO)
-            {
-                user.Add(new User(dto.UserId, dto.Naam, dto.AchterNaam,dto.Email, dto.PasswordHash, dto.Salt));
-                
-
-            }
-            return user;
-
-        }
-
-
-        public User MapToUser(UserDTO dto)
-        {
-            return new User(
-                dto.UserId,
-                dto.Naam,
-                dto.AchterNaam,
-                dto.Email,
-                dto.PasswordHash,
-                dto.Salt
-
-
-                );
+            this.wachtwoordStrategy = wachtwoordStrategy ?? throw new ArgumentNullException(nameof(wachtwoordStrategy));
         }
 
         public UserDTO MapToDTO(User user)
         {
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+
             return new UserDTO(
                 user.UserId,
                 user.Naam,
@@ -60,7 +32,23 @@ namespace Domain.Mapper
                 user.Email,
                 user.PasswordHash,
                 user.Salt
-                );
+            );
+        }
+
+        public User MapToDomain(UserDTO dto)
+        {
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
+
+            return User.LaadVanuitDatabase(
+                dto.UserId,
+                dto.Naam,
+                dto.AchterNaam,
+                dto.Email,
+                dto.PasswordHash,
+                dto.Salt,
+                wachtwoordStrategy
+            );
         }
     }
 }

@@ -17,7 +17,7 @@ namespace Infrastructure.Repos_DB
         private IVrijwilligersWerkRepository werkDB;
         private string connString;
         private MySqlConnection connection = null;
-      
+
 
 
         public WerkRegistratieRepositoryDB(DBSettings settings, IVrijwilligersWerkRepository werkDb, IUserRepository userDb)
@@ -44,7 +44,7 @@ namespace Infrastructure.Repos_DB
             UserDTO user = userDB.GetUserOnId(userId);
             VrijwilligersWerkDTO werk = werkDB.GetWerkOnId(werkId);
 
-            return(user, werk);
+            return (user, werk);
         }
 
 
@@ -68,7 +68,7 @@ namespace Infrastructure.Repos_DB
                                 int id = reader.GetInt32("id");
                                 int userId = reader.GetInt32("user_id");
                                 int werkId = reader.GetInt32("volenteer_work_id");
-                                
+
                                 var (user, werk) = HelperMethod(userId, werkId);
 
 
@@ -80,7 +80,8 @@ namespace Infrastructure.Repos_DB
                     }
                     catch (MySqlException ex)
                     {
-                        Console.WriteLine($"Query execution failed: {ex.Message}");
+                        File.AppendAllText("error.log", $"Fout bij ophalen van registraties: {ex.Message}" + Environment.NewLine);
+                        throw new Exception($"Kon werkregistraties niet ophalen", ex);
                     }
                     finally
                     {
@@ -134,7 +135,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen registratie {id}: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon werkregistratie {id} niet ophalen", ex);
                 }
                 finally
                 {
@@ -189,7 +191,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen registratie: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon werkregistratie niet ophalen", ex);
                 }
                 finally
                 {
@@ -215,8 +218,8 @@ namespace Infrastructure.Repos_DB
 
             if (IsConnect(connString))
             {
-                string query = @"INSERT INTO volenteer_work_user(id, user_id, volenteer_work_id)
-                                VALUES (@id, @user_id, @werk_id)";
+                string query = @"INSERT INTO volenteer_work_user(user_id, volenteer_work_id)
+                                VALUES (@user_id, @werk_id)";
 
                 try
                 {
@@ -225,10 +228,10 @@ namespace Infrastructure.Repos_DB
 
 
 
-                        cmd.Parameters.AddWithValue("@id", registratieDTO.RegistratieId);
+
                         cmd.Parameters.AddWithValue("@user_id", registratieDTO.User.UserId);
                         cmd.Parameters.AddWithValue("@werk_id", registratieDTO.VrijwilligersWerk.WerkId);
-          
+
 
 
                         cmd.ExecuteNonQuery();
@@ -240,7 +243,8 @@ namespace Infrastructure.Repos_DB
 
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij toevoegen van registratie: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon werkregistratie niet toevoegen", ex);
 
                 }
                 finally
@@ -285,8 +289,9 @@ namespace Infrastructure.Repos_DB
             }
             catch (MySqlException ex)
             {
-                Console.WriteLine($"Query execution failed: {ex.Message}");
-                return false;
+                File.AppendAllText("error.log", $"Fout bij verwijderen van registratie: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kon werkregistratie niet verwijderen", ex);
+
             }
             finally
             {
@@ -299,6 +304,39 @@ namespace Infrastructure.Repos_DB
         }
 
 
+
+
+        // ophalen aantal registraties
+
+        public int GetRegistratieCountForWerk(int werkId)
+        {
+            if (!IsConnect(connString))
+                return 0;
+
+            string query = "SELECT COUNT(*) FROM volenteer_work_user WHERE volenteer_work_id = @werkId";
+
+            try
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@werkId", werkId);
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+            catch (MySqlException ex)
+            {
+                File.AppendAllText("error.log", $"Fout bij ophalen registratie telling voor werk {werkId}: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kon registratie telling niet ophalen voor werk {werkId}", ex);
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    connection.Close();
+                    connection = null;
+                }
+            }
+        }
 
 
 

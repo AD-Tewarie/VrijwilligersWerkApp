@@ -10,40 +10,51 @@
             <div class="card shadow">
                 <div class="card-body">
                     <h2 class="card-title text-center">Nieuw Vrijwilligerswerk</h2>
-                    <form method="post">
+
+                    @if (!string.IsNullOrEmpty(TempData["ErrorMessage"]?.ToString()))
+                    {
+                        <div class="alert alert-danger">
+                            @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    <form method="post" asp-page-handler="CreateWork">
                         <div class="mb-3">
-                            <label for="Titel" class="form-label">Titel</label>
-                            <input asp-for="Titel" class="form-control" placeholder="Voer de titel in" />
+                            <label asp-for="Titel" class="form-label">Titel</label>
+                            <input asp-for="Titel" class="form-control" />
                             <span asp-validation-for="Titel" class="text-danger"></span>
                         </div>
+
                         <div class="mb-3">
-                            <label for="Omschrijving" class="form-label">Omschrijving</label>
-                            <textarea asp-for="Omschrijving" class="form-control" placeholder="Voer een beschrijving in"></textarea>
+                            <label asp-for="Omschrijving" class="form-label">Omschrijving</label>
+                            <textarea asp-for="Omschrijving" class="form-control"></textarea>
                             <span asp-validation-for="Omschrijving" class="text-danger"></span>
                         </div>
+
                         <div class="mb-3">
-                            <label for="MaxCapaciteit" class="form-label">Maximale Capaciteit</label>
-                            <input asp-for="MaxCapaciteit" class="form-control" type="number" placeholder="Aantal vrijwilligers" />
+                            <label asp-for="MaxCapaciteit" class="form-label">Maximale Capaciteit</label>
+                            <input asp-for="MaxCapaciteit" class="form-control" type="number" />
                             <span asp-validation-for="MaxCapaciteit" class="text-danger"></span>
                         </div>
+
                         <div class="mb-3">
-                            <label for="CategorieId" class="form-label">Categorie</label>
-                            <select asp-for="CategorieId" class="form-select">
-                                <option value="">Selecteer een categorie</option>
-                                @foreach (var categorie in Model.Categorieën)
-                                {
-                                    <option value="@categorie.Value">@categorie.Text</option>
-                                }
-                            </select>
+                            <label asp-for="CategorieId" class="form-label">Categorie</label>
+                            <select asp-for="CategorieId" asp-items="Model.Categorieën" class="form-select"></select>
                             <span asp-validation-for="CategorieId" class="text-danger"></span>
                         </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">Opslaan</button>
                         </div>
-                        <p class="text-success mt-3">@Model.FeedbackMessage</p>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

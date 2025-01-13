@@ -1,34 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.Models;
 
 namespace Domain.Vrijwilligerswerk_Test.Models
 {
     public class WerkCategorie
     {
-        private int werkId { get; set; }
-        private int categorieId { get; set; }
+        public int WerkId { get; private set; }
+        public int CategorieId { get; private set; }
 
-        public WerkCategorie(int werkId, int categorieId)
+        private WerkCategorie(int werkId, int categorieId)
         {
-            this.werkId = werkId;
-            this.categorieId = categorieId;
+            ValideerWerkCategorie(werkId, categorieId);
+            WerkId = werkId;
+            CategorieId = categorieId;
         }
 
-        public int WerkId
+        public static WerkCategorie Maak(int werkId, int categorieId)
         {
-            get { return werkId; }
-            set { werkId = value; }
-
+            return new WerkCategorie(werkId, categorieId);
         }
 
-        public int CategorieId
+        private static void ValideerWerkCategorie(int werkId, int categorieId)
         {
-            get { return categorieId; }
-            set { categorieId = value; }
+            var fouten = new List<string>();
 
+            if (werkId <= 0)
+                fouten.Add("WerkId moet groter zijn dan 0.");
+
+            if (categorieId <= 0)
+                fouten.Add("CategorieId moet groter zijn dan 0.");
+
+            if (fouten.Any())
+                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
         }
 
 

@@ -8,35 +8,18 @@ namespace Infrastructure.DTO
 {
     public class WerkRegistratieDTO
     {
-        private VrijwilligersWerkDTO vrijwilligersWerk;
-        private UserDTO user;
-        private int registratieId { get; set; }
+        public int RegistratieId { get; set; }
+        public VrijwilligersWerkDTO VrijwilligersWerk { get; set; }
+        public UserDTO User { get; set; }
 
-
-
-        public WerkRegistratieDTO(VrijwilligersWerkDTO werk, UserDTO user, int registratieId)
+        public WerkRegistratieDTO(
+            VrijwilligersWerkDTO vrijwilligersWerk,
+            UserDTO user,
+            int registratieId)
         {
-            this.vrijwilligersWerk = werk;
-            this.user = user;
-            this.registratieId = registratieId;
-        }
-
-        public int RegistratieId
-        {
-            get { return registratieId; }
-            set { registratieId = value; }
-        }
-
-        public VrijwilligersWerkDTO VrijwilligersWerk
-        {
-            get { return vrijwilligersWerk; }
-            set { vrijwilligersWerk = value; }
-        }
-
-        public UserDTO User
-        {
-            get { return user; }
-            set { user = value; }
+            RegistratieId = registratieId;
+            VrijwilligersWerk = vrijwilligersWerk;
+            User = user;
         }
 
     }

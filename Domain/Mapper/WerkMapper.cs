@@ -10,56 +10,38 @@ using System.Threading.Tasks;
 
 namespace Domain.Mapper
 {
-    public class WerkMapper
+    public class WerkMapper : IMapper<VrijwilligersWerk, VrijwilligersWerkDTO>
     {
-        
-        private IVrijwilligersWerkRepository dbRepos;
-
-
-        public WerkMapper(IVrijwilligersWerkRepository repos)
-        {
-            dbRepos = repos;
-        }
-
-
-
-        public List<VrijwilligersWerk> MapToWerkLijst()
-        {
-            List<VrijwilligersWerk> werk = new List<VrijwilligersWerk>();
-            List<VrijwilligersWerkDTO> werkDTOs = dbRepos.GetVrijwilligersWerk();
-
-            foreach (VrijwilligersWerkDTO dto in werkDTOs) {
-                werk.Add(new VrijwilligersWerk(dto.WerkId, dto.Titel, dto.Omschrijving, dto.MaxCapaciteit));
-            
-            }
-            return werk;
-
-        }
-
-        
         public VrijwilligersWerkDTO MapToDTO(VrijwilligersWerk werk)
         {
-            return new VrijwilligersWerkDTO(
-                werk.WerkId,
+            if (werk == null)
+                throw new ArgumentNullException(nameof(werk));
+
+            
+            return new VrijwilligersWerkDTO
+            (
+                werk.WerkId,  
                 werk.Titel,
                 werk.Omschrijving,
-                werk.MaxCapaciteit
-
-                );
-        
-                
-            
+                werk.MaxCapaciteit,
+                werk.AantalRegistraties
+            );
         }
 
-        public VrijwilligersWerk MapToVrijwilligerswerk(VrijwilligersWerkDTO dto)
+        public VrijwilligersWerk MapToDomain(VrijwilligersWerkDTO dto)
         {
-            return new VrijwilligersWerk(
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
+
+     
+
+            return VrijwilligersWerk.LaadVanuitDatabase(
                 dto.WerkId,
                 dto.Titel,
                 dto.Omschrijving,
-                dto.MaxCapaciteit
-                );
+                dto.MaxCapaciteit,
+                dto.AantalRegistraties
+            );
         }
-
     }
 }

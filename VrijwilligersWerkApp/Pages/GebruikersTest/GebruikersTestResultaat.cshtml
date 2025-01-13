@@ -1,62 +1,155 @@
 ﻿@page
 @model VrijwilligersWerkApp.Pages.GebruikersTest.GebruikersTestResultaatModel
-@{
-    ViewData["Title"] = "Test Resultaten";
-}
+@using Domain.Vrijwilligerswerk_Test.PresentatieStrategy
 
-<div class="container mt-5">
-    <h1 class="text-center">Aanbevolen Vacatures</h1>
+<div class="container mt-4">
+    <h2>Test Resultaten</h2>
 
-    @if (Model.CanRetakeTest)
+    @if (!string.IsNullOrEmpty(Model.SuccesMessage))
     {
-        <div class="alert alert-warning text-center" role="alert">
-            <p>@Model.FeedbackMessage</p>
-            <a class="btn btn-primary" asp-page="/GebruikersTest/GebruikersTest">Test Opnieuw Afleggen</a>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccesMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Presentatie type selector -->
+    <div class="mb-4">
+        <h4>Weergave Type:</h4>
+        <div class="btn-group" role="group">
+            <a href="?presentatieType=top"
+               class="btn @(Model.HuidigePresentatieType == "top" ? "btn-primary" : "btn-secondary")">
+                Top 5 Resultaten
+            </a>
+            <a href="?presentatieType=minimum"
+               class="btn @(Model.HuidigePresentatieType == "minimum" ? "btn-primary" : "btn-secondary")">
+                Minimum Score (50+)
+            </a>
+            <a href="?presentatieType=alles"
+               class="btn @(Model.HuidigePresentatieType == "alles" ? "btn-primary" : "btn-secondary")">
+                Alle Resultaten
+            </a>
+        </div>
+    </div>
+
+    @if (Model.GesorteerdeScores != null && Model.GesorteerdeScores.Any())
+    {
+        <div class="row">
+            <!-- Categorie Scores -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="card-title mb-0">Scores per Categorie</h4>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush">
+                            @foreach (var score in Model.GesorteerdeScores.OrderByDescending(s => s.Value))
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @score.Key.Naam
+                                    <span class="badge bg-primary rounded-pill">@score.Value</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aanbevolen Werk -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="card-title mb-0">Aanbevolen Vrijwilligerswerk</h4>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.AanbevolenWerk != null && Model.AanbevolenWerk.Any())
+                        {
+                            <div class="row">
+                                @foreach (var werkMetScore in Model.AanbevolenWerk)
+                                {
+                                    <div class="col-12 mb-3">
+                                        <div class="card h-100 shadow-sm">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h5 class="card-title mb-0">@werkMetScore.Werk.Titel</h5>
+                                                    <span class="badge bg-info">Match Score: @werkMetScore.Score%</span>
+                                                </div>
+
+                                                <p class="card-text mb-3">@werkMetScore.Werk.Omschrijving</p>
+
+                                                <div class="mb-3">
+                                                    <small class="text-muted d-block mb-1">
+                                                        Bezetting: @werkMetScore.Werk.AantalRegistraties / @werkMetScore.Werk.MaxCapaciteit
+                                                    </small>
+                                                    <div class="progress" style="height: 10px;">
+                                                        @{
+                                                            var percentage = (werkMetScore.Werk.AantalRegistraties / (float)werkMetScore.Werk.MaxCapaciteit) * 100;
+                                                            var progressClass = percentage >= 100 ? "bg-danger"
+                                                            : percentage >= 80 ? "bg-warning"
+                                                            : "bg-success";
+                                                        }
+                                                        <div class="progress-bar @progressClass"
+                                                             role="progressbar"
+                                                             style="width: @percentage%"
+                                                             aria-valuenow="@percentage"
+                                                             aria-valuemin="0"
+                                                             aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="badge bg-light text-dark">
+                                                        Beschikbare plaatsen: @(werkMetScore.Werk.MaxCapaciteit - werkMetScore.Werk.AantalRegistraties)
+                                                    </span>
+                                                    <form method="post" asp-page-handler="ApplyForJob">
+                                                        <input type="hidden" name="werkId" value="@werkMetScore.Werk.WerkId" />
+                                                        <button type="submit"
+                                                                class="btn @(werkMetScore.Werk.AantalRegistraties >= werkMetScore.Werk.MaxCapaciteit ? "btn-secondary" : "btn-primary")"
+                                                        @(werkMetScore.Werk.AantalRegistraties >= werkMetScore.Werk.MaxCapaciteit ? "disabled" : "")>
+                                                            @(werkMetScore.Werk.AantalRegistraties >= werkMetScore.Werk.MaxCapaciteit ? "Vol" : "Registreer")
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                Geen aanbevolen werk gevonden voor de huidige selectie.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
         </div>
     }
     else
     {
-        @if (Model.AanbevolenWerk != null && Model.AanbevolenWerk.Any())
-        {
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th scope="col">Titel</th>
-                            <th scope="col">Omschrijving</th>
-                            <th scope="col">Capaciteit</th>
-                            <th scope="col">Actie</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var werk in Model.AanbevolenWerk)
-                        {
-                            <tr>
-                                <td>@werk.Titel</td>
-                                <td>@werk.Omschrijving</td>
-                                <td>@werk.MaxCapaciteit</td>
-                                <td>
-                                    <form method="post" asp-page-handler="Apply">
-                                        <input type="hidden" name="id" value="@werk.WerkId" />
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            Solliciteer
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-        else
-        {
-            <p class="text-center">Geen aanbevolen vacatures gevonden.</p>
-        }
-    }
-
-    @if (!string.IsNullOrEmpty(Model.FeedbackMessage) && !Model.CanRetakeTest)
-    {
-        <div class="alert alert-info mt-4">@Model.FeedbackMessage</div>
+        <div class="alert alert-warning">
+            @(Model.FeedbackMessage ?? "Geen resultaten beschikbaar. Start de test opnieuw.")
+        </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        // Enable Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+    </script>
+}

@@ -1,35 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Domain.Vrijwilligerswerk_Test
+﻿namespace Domain.Vrijwilligerswerk_Test
 {
     public class Categorie
     {
-        private int id { get; set; }
-        private string naam { get; set; }
+        public int Id { get; private set; }
+        public string Naam { get; private set; }
 
-
-        public Categorie(int id, string naam)
+        private Categorie(int id, string naam)
         {
-            this.id = id;
-            this.naam = naam;
-            
+            ValideerCategorie(naam);
+            Id = id;
+            Naam = naam;
         }
 
-
-        public int Id
+        public static Categorie Maak(int id, string naam)
         {
-            get { return id; }
-            set { id = value; }
+            return new Categorie(id, naam);
         }
 
-        public string Naam
+        private static void ValideerCategorie(string naam)
         {
-            get { return naam; }
-            set { naam = value; }
+            if (string.IsNullOrWhiteSpace(naam))
+                throw new ArgumentException("Naam mag niet leeg zijn.");
         }
     }
 }

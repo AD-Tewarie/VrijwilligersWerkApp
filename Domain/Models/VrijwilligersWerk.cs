@@ -1,73 +1,93 @@
-﻿using Domain.Vrijwilligerswerk_Test;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Domain.Models
+﻿namespace Domain.Models
 {
     public class VrijwilligersWerk
     {
 
 
-        private int werkId;
-        private string titel;
-        private string omschrijving;
-        private int maxCapaciteit;
-        private int aantalRegistraties;
-      
+        public int WerkId { get; private set; }  
+        public string Titel { get; private set; }
+        public string Omschrijving { get; private set; }
+        public int MaxCapaciteit { get; private set; }
+        public int AantalRegistraties { get; private set; }
 
-
-
-        public VrijwilligersWerk(int werkId, string titel, string omschrijving, int maxCapaciteit)
+        private VrijwilligersWerk(string titel, string omschrijving, int maxCapaciteit)
         {
-            this.werkId = werkId;
-            this.titel = titel;
-            this.omschrijving = omschrijving;
-            this.maxCapaciteit = maxCapaciteit;
-           
-            
+            WijzigDetails(titel, omschrijving, maxCapaciteit);
         }
 
-        // ctor voor het toevoegen van werk
-        public VrijwilligersWerk(string titel, string omschrijving, int maxCapaciteit)
+        public static VrijwilligersWerk MaakNieuw(string titel, string omschrijving, int maxCapaciteit)
         {
-            this.titel=titel;
-            this.omschrijving=omschrijving;
-            this.maxCapaciteit=maxCapaciteit;
+            return new VrijwilligersWerk(titel, omschrijving, maxCapaciteit);
+        }
+
+        public static VrijwilligersWerk MaakMetId(int werkId, string titel, string omschrijving, int maxCapaciteit)
+        {
+            var werk = new VrijwilligersWerk(titel, omschrijving, maxCapaciteit);
+            werk.WerkId = werkId;
+            return werk;
+        }
+
+        public static VrijwilligersWerk LaadVanuitDatabase(int werkId, string titel, string omschrijving,
+            int maxCapaciteit, int aantalRegistraties)
+        {
+            var werk = new VrijwilligersWerk(titel, omschrijving, maxCapaciteit);
+            werk.WerkId = werkId;
+            werk.AantalRegistraties = aantalRegistraties;
+            return werk;
+        }
+
+        // validatie 
+
+        private static void ValideerWerk(string titel, string omschrijving, int maxCapaciteit)
+        {
+            var fouten = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(titel))
+                fouten.Add("Titel is verplicht.");
+
+            if (string.IsNullOrWhiteSpace(omschrijving))
+                fouten.Add("Omschrijving is verplicht.");
+
+            if (maxCapaciteit <= 0)
+                fouten.Add("Capaciteit moet groter zijn dan 0.");
+
+            if (maxCapaciteit > 100)
+                fouten.Add("Maximale capaciteit mag niet groter zijn dan 100.");
+
+            if (fouten.Any())
+            {
+                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
+            }
         }
 
 
-        public int WerkId
+        // logic
+        public void WijzigDetails(string titel, string omschrijving, int maxCapaciteit)
         {
-            get { return werkId; }
-            set { werkId = value; }
+            ValideerWerk(titel, omschrijving, maxCapaciteit);
+
+            Titel = titel;
+            Omschrijving = omschrijving;
+            MaxCapaciteit = maxCapaciteit;
         }
 
-        public string Titel
+
+        public void VerhoogAantalRegistraties()
         {
-            get { return titel; }
-            set { titel = value; }
+            if (AantalRegistraties >= MaxCapaciteit)
+                throw new InvalidOperationException("Maximum capaciteit is bereikt.");
+
+            AantalRegistraties++;
         }
 
-        public string Omschrijving
+        public void VerlaagAantalRegistraties()
         {
-            get { return omschrijving; }
-            set { omschrijving = value; }
+            if (AantalRegistraties <= 0)
+                throw new InvalidOperationException("Aantal registraties kan niet negatief worden.");
+
+            AantalRegistraties--;
         }
 
-        public int MaxCapaciteit
-        {
-            get { return maxCapaciteit; }
-            set { maxCapaciteit = value; }
-        }
-
-        public int Aantalregistraties
-        {
-            get { return aantalRegistraties; }
-            set { maxCapaciteit = value; }
-        }
 
 
     }

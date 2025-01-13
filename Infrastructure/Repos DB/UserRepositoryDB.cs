@@ -71,7 +71,8 @@ namespace Infrastructure.Repos_DB
                     }
                     catch (MySqlException ex)
                     {
-                        Console.WriteLine($"Query execution failed: {ex.Message}");
+                        File.AppendAllText("error.log", $"Fout bij ophalen gebruikers: {ex.Message}" + Environment.NewLine);
+                        throw new Exception($"Kon gebruikers niet ophalen", ex);
                     }
                     finally
                     {
@@ -126,7 +127,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen gebruiker: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon gebruiker niet ophalen", ex);
                 }
                 finally
                 {
@@ -182,7 +184,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij ophalen gebruiker {id}: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon gebruiker {id} niet ophalen", ex);
                 }
                 finally
                 {
@@ -234,7 +237,8 @@ namespace Infrastructure.Repos_DB
 
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij toevoegen gebruiker: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kon gebruiker niet toevoegen", ex);
 
                 }
                 finally
@@ -275,8 +279,8 @@ namespace Infrastructure.Repos_DB
             }
             catch (MySqlException ex)
             {
-                Console.WriteLine($"Query execution failed: {ex.Message}");
-                return false;
+                File.AppendAllText("error.log", $"Fout bij verwijderen gebruiker {userId}: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kon gebruiker {userId} niet verwijderen", ex);
             }
             finally
             {

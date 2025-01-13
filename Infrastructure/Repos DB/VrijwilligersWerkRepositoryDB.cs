@@ -65,7 +65,8 @@ namespace Infrastructure.Repos_DB
                     }
                     catch (MySqlException ex)
                     {
-                        Console.WriteLine($"Query execution failed: {ex.Message}");
+                        File.AppendAllText("error.log", $"Fout bij het van werk: {ex.Message}" + Environment.NewLine);
+                        throw new Exception($"Kan vrijwilligerswerk niet ophalen", ex);
                     }
                     finally
                     {
@@ -115,7 +116,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij het van werk met id {id}: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kan vrijwilligerswerk: {id} niet ophalen", ex);
                 }
                 finally
                 {
@@ -144,8 +146,11 @@ namespace Infrastructure.Repos_DB
 
             if (IsConnect(connString))
             {
-                string query = @"INSERT INTO volenteer_work(id, title, description, max_volenteers)
-                                VALUES (@id, @title, @description, @max_volenteers)";
+                string query = @"INSERT INTO volenteer_work(title, description, max_volenteers)
+                        VALUES (@title, @description, @max_volenteers);
+                        SELECT LAST_INSERT_ID();";
+
+
 
                 try
                 {
@@ -160,7 +165,7 @@ namespace Infrastructure.Repos_DB
                         cmd.Parameters.AddWithValue("@max_volenteers", werkDTO.MaxCapaciteit);
 
 
-                        cmd.ExecuteNonQuery();
+                        werkDTO.WerkId = Convert.ToInt32(cmd.ExecuteScalar());
 
                     }
 
@@ -169,7 +174,8 @@ namespace Infrastructure.Repos_DB
 
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij toevoegen werk: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kan vrijwilligerswerk niet toevoegen", ex);
 
                 }
                 finally
@@ -204,7 +210,8 @@ namespace Infrastructure.Repos_DB
                 }
                 catch (MySqlException ex)
                 {
-                    Console.WriteLine($"Query execution failed: {ex.Message}");
+                    File.AppendAllText("error.log", $"Fout bij het koppelen van de categorie: {ex.Message}" + Environment.NewLine);
+                    throw new Exception($"Kan categorie niet koppelen ", ex);
                 }
                 finally
                 {
@@ -226,30 +233,28 @@ namespace Infrastructure.Repos_DB
                 return false;
 
             string query = @"UPDATE volenteer_work 
-                            SET title = @title, description = @description, max_volenteers = @max_volenteers 
-                            WHERE id = @id";
-
+                    SET title = @title, 
+                        description = @description, 
+                        max_volenteers = @max_volenteers
+                    WHERE id = @id";
 
             try
             {
                 using (var cmd = new MySqlCommand(query, connection))
                 {
-                    
+                    cmd.Parameters.AddWithValue("@id", updatedWerk.WerkId);
                     cmd.Parameters.AddWithValue("@title", updatedWerk.Titel);
                     cmd.Parameters.AddWithValue("@description", updatedWerk.Omschrijving);
                     cmd.Parameters.AddWithValue("@max_volenteers", updatedWerk.MaxCapaciteit);
 
-                   
                     int rowsAffected = cmd.ExecuteNonQuery();
-
-                   
                     return rowsAffected > 0;
                 }
             }
             catch (MySqlException ex)
             {
-                Console.WriteLine($"Query execution failed: {ex.Message}");
-                return false;
+                File.AppendAllText("error.log", $"Fout bij het bewerken van werk {updatedWerk.WerkId}: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kan vrijwilligerswerk: {updatedWerk.WerkId} niet bewerken", ex);
             }
             finally
             {
@@ -262,36 +267,32 @@ namespace Infrastructure.Repos_DB
         }
 
         // Verhoog/verlaag aantal registraties
-        public bool BewerkAantalRegistraties (int werkId, int wijziging) 
+        public bool BewerkAantalRegistraties(int werkId, int wijziging)
         {
             if (!IsConnect(connString))
                 return false;
-            // gebruik COALESCE om een null value te vervangen met 0.
-            string query = @"UPDATE volenteer_work 
-                            SET reg_count = COALESCE(reg_count, 0) + @wijziging
-                            WHERE id = @id";
 
+            // Gebruik COALESCE om een null value te vervangen met 0
+            // Gebruik GREATEST om te zorgen dat het resultaat niet onder 0 kan komen
+            string query = @"UPDATE volenteer_work 
+                    SET reg_count = GREATEST(0, COALESCE(reg_count, 0) + @wijziging)
+                    WHERE id = @id";
 
             try
             {
                 using (var cmd = new MySqlCommand(query, connection))
                 {
-
                     cmd.Parameters.AddWithValue("@id", werkId);
                     cmd.Parameters.AddWithValue("@wijziging", wijziging);
 
-
-
                     int rowsAffected = cmd.ExecuteNonQuery();
-
-
                     return rowsAffected > 0;
                 }
             }
             catch (MySqlException ex)
             {
-                Console.WriteLine($"Query execution failed: {ex.Message}");
-                return false;
+                File.AppendAllText("error.log", $"Fout bij bewerken van registraties voor werk {werkId}: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kan registratie aantal niet bewerken voor werk {werkId}", ex);
             }
             finally
             {
@@ -301,7 +302,6 @@ namespace Infrastructure.Repos_DB
                     connection = null;
                 }
             }
-
         }
 
 
@@ -332,8 +332,8 @@ namespace Infrastructure.Repos_DB
             }
             catch (MySqlException ex)
             {
-                Console.WriteLine($"Query execution failed: {ex.Message}");
-                return false;
+                File.AppendAllText("error.log", $"Fout bij het verwijderen van werk met id {werkId}: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kan vrijwilligerswerk: {werkId} niet verwijderen", ex);
             }
             finally
             {

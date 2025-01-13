@@ -9,11 +9,13 @@ namespace Infrastructure.Interfaces
 {
     public interface IWerkRegistratieRepository
     {
-        public List<WerkRegistratieDTO> GetWerkRegistraties();
-        public WerkRegistratieDTO GetRegistratieOnId(int id);
-        public WerkRegistratieDTO GetRegistratieOnWerkId(int checkId);
-        public void AddWerkRegistratie(WerkRegistratieDTO registratieDTO);
-        public bool VerwijderWerkRegistratie(int registratieId);
+        List<WerkRegistratieDTO> GetWerkRegistraties();
+        WerkRegistratieDTO GetRegistratieOnId(int id);
+        void AddWerkRegistratie(WerkRegistratieDTO registratieDTO);
+        bool VerwijderWerkRegistratie(int registratieId);
+        WerkRegistratieDTO GetRegistratieOnWerkId(int werkId);
+        int GetRegistratieCountForWerk(int werkId);
+
 
     }
 }

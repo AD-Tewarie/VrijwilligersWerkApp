@@ -8,12 +8,12 @@ namespace Infrastructure.Interfaces
 {
     public interface IVrijwilligersWerkRepository
     {
-        public List<VrijwilligersWerkDTO> GetVrijwilligersWerk();
-        public VrijwilligersWerkDTO GetWerkOnId(int id);
-        public void AddVrijwilligersWerk(VrijwilligersWerkDTO werkDTO);
-        public bool BewerkVrijwilligersWerk(VrijwilligersWerkDTO updatedWerk);
-        public bool BewerkAantalRegistraties(int werkId, int wijziging);
-        public bool VerwijderVrijwilligersWerk(int werkId);
-        public void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId);
+        List<VrijwilligersWerkDTO> GetVrijwilligersWerk();
+        VrijwilligersWerkDTO GetWerkOnId(int id);
+        void AddVrijwilligersWerk(VrijwilligersWerkDTO werkDTO);
+        bool BewerkVrijwilligersWerk(VrijwilligersWerkDTO updatedWerk);
+        bool VerwijderVrijwilligersWerk(int werkId);
+        bool BewerkAantalRegistraties(int werkId, int wijziging);
+        void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId);
     }
 }

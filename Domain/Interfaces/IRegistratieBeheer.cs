@@ -10,8 +10,11 @@ namespace Domain.Interfaces
 {
     public interface IRegistratieBeheer
     {
-        List<string> HaalRegistratiesOp();
         void RegistreerGebruikerVoorWerk(int userId, int werkId);
         void VerwijderRegistratie(int registratieId);
+
+        // Queries
+        List<WerkRegistratie> HaalRegistratiesOp();
+        WerkRegistratie HaalRegistratieOp(int registratieId);
     }
 }

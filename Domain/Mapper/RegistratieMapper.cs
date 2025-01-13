@@ -1,4 +1,5 @@
 ﻿using Domain.Models;
+using Infrastructure;
 using Infrastructure.DTO;
 using Infrastructure.Interfaces;
 using Infrastructure.Repos_DB;
@@ -11,50 +12,41 @@ using System.Threading.Tasks;
 
 namespace Domain.Mapper
 {
-    public class RegistratieMapper
+    public class RegistratieMapper : IMapper<WerkRegistratie, WerkRegistratieDTO>
     {
-        private  IWerkRegistratieRepository repository;
-        private WerkMapper werkMapper;
-        private UserMapper userMapper;
+        private readonly IMapper<VrijwilligersWerk, VrijwilligersWerkDTO> werkMapper;
+        private readonly IMapper<User, UserDTO> userMapper;
 
-        public RegistratieMapper(IWerkRegistratieRepository repos, WerkMapper werk, UserMapper user)
+        public RegistratieMapper(
+            IMapper<VrijwilligersWerk, VrijwilligersWerkDTO> werkMapper,
+            IMapper<User, UserDTO> userMapper)
         {
-            repository = repos;
-            werkMapper = werk;
-            userMapper = user;
+            this.werkMapper = werkMapper ?? throw new ArgumentNullException(nameof(werkMapper));
+            this.userMapper = userMapper ?? throw new ArgumentNullException(nameof(userMapper));
         }
 
-
-
-        public  List<WerkRegistratie> MapToDomainList()
+        public WerkRegistratieDTO MapToDTO(WerkRegistratie registratie)
         {
-            List<WerkRegistratie> registraties = new List<WerkRegistratie>();
-            List<WerkRegistratieDTO> registratieDTOs = repository.GetWerkRegistraties();
-            
+            if (registratie == null)
+                throw new ArgumentNullException(nameof(registratie));
 
-
-            foreach (WerkRegistratieDTO dto in registratieDTOs)
-            {
-                var vrijwilligersWerk = werkMapper.MapToVrijwilligerswerk(dto.VrijwilligersWerk);
-                var user = userMapper.MapToUser(dto.User);
-
-                registraties.Add(new WerkRegistratie(vrijwilligersWerk, user, dto.RegistratieId));
-
-            }
-            return registraties;
-
-        }
-
-
-       
-
-        public  WerkRegistratieDTO MapToDTO(WerkRegistratie registratie)
-        {
             return new WerkRegistratieDTO(
                 werkMapper.MapToDTO(registratie.VrijwilligersWerk),
                 userMapper.MapToDTO(registratie.User),
-                registratie.RegistratieId);
+                registratie.RegistratieId
+            );
+        }
 
+        public WerkRegistratie MapToDomain(WerkRegistratieDTO dto)
+        {
+            if (dto == null)
+                throw new ArgumentNullException(nameof(dto));
+
+            var vrijwilligersWerk = werkMapper.MapToDomain(dto.VrijwilligersWerk);
+            var user = userMapper.MapToDomain(dto.User);
+
+
+            return WerkRegistratie.LaadVanuitDatabase(dto.RegistratieId, vrijwilligersWerk, user);
         }
 
 
