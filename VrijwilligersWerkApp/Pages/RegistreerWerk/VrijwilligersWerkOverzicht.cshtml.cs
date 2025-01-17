@@ -1,11 +1,7 @@
+using Application.Interfaces;
+using Application.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Domain.Interfaces;
-using Application.Interfaces;
-using VrijwilligersWerkApp.Helpers;
-using Domain.Vrijwilligerswerk_Test.Interfaces;
-using Infrastructure.Interfaces;
-using Application.ViewModels;
 
 
 namespace VrijwilligersWerkApp.Pages.RegistreerWerk

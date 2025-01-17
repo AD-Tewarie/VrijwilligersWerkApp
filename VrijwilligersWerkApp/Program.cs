@@ -16,7 +16,6 @@ using Domain.Vrijwilligerswerk_Test.WerkScore;
 using Domain.Werk.Interfaces;
 using Domain.Werk.Models;
 using Domain.Werk.Services;
-using Infrastructure.Repos_DB;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
