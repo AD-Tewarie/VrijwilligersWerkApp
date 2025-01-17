@@ -4,85 +4,93 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Domain.Interfaces;
 using VrijwilligersWerkApp.Services;
+using Application.Interfaces;
+using Application.ViewModels;
 
 namespace VrijwilligersWerkApp.Pages.GebruikersTest
 {
     public class GebruikersTestModel : PageModel
     {
-        private readonly ITestBeheer testBeheer;
-        private readonly ITestSessionService testSessionService;
+        private readonly IGebruikersTestService testService;
+        private readonly ILogger<GebruikersTestModel> logger;
 
-        public string HuidigeVraag { get; private set; }
-        public bool IsTestKlaar { get; private set; }
-        public Dictionary<Categorie, int> GesorteerdeScores { get; private set; }
-        public List<VrijwilligersWerk> AanbevolenWerk { get; private set; }
-        public int VoortgangPercentage { get; private set; }
-        public bool IsLaatsteVraag { get; private set; }
+        public GebruikersTestViewModel VraagModel { get; set; }
+        public string FeedbackMessage { get; set; }
 
         public GebruikersTestModel(
-            ITestBeheer testBeheer,
-            ITestSessionService testSessionService)
+            IGebruikersTestService testService,
+            ILogger<GebruikersTestModel> logger)
         {
-            this.testBeheer = testBeheer ?? throw new ArgumentNullException(nameof(testBeheer));
-            this.testSessionService = testSessionService ?? throw new ArgumentNullException(nameof(testSessionService));
+            this.testService = testService;
+            this.logger = logger;
         }
 
         public IActionResult OnGet()
         {
-            if (testSessionService.HeeftBestaandeResultaten())
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
             {
-                ViewData["HasPreviousResults"] = true;
-                return Page();
+                return RedirectToPage("/Login/LoginGebruiker");
             }
 
-            LaadVolgendeVraag();
-            return Page();
-        }
-
-        public IActionResult OnPostReset()
-        {
-            testSessionService.ResetTest();
-            return RedirectToPage();
-        }
-
-        public IActionResult OnPost(int antwoord)
-        {
             try
             {
-                bool isKlaar = testSessionService.VerwerkAntwoord(antwoord);
-                
-
-                if (isKlaar)
+                if (testService.HeeftBestaandeResultaten(userId.Value))
                 {
-                    var (scores, aanbevolenWerk) = testSessionService.BerekenResultaten();
-                   
+                    ViewData["HasPreviousResults"] = true;
+                    return Page();
+                }
+
+                VraagModel = testService.HaalVolgendeVraag(userId.Value);
+                if (VraagModel == null)
+                {
                     return RedirectToPage("/GebruikersTest/GebruikersTestResultaat");
                 }
 
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Fout bij ophalen test vraag");
+                FeedbackMessage = "Er is een fout opgetreden bij het laden van de test.";
+                return Page();
+            }
+        }
 
-                LaadVolgendeVraag(); 
+        public IActionResult OnPostAntwoord(int antwoord)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
+            {
+                return RedirectToPage("/Login/LoginGebruiker");
+            }
+
+            try
+            {
+                bool isKlaar = testService.VerwerkAntwoord(userId.Value, antwoord);
+                if (isKlaar)
+                {
+                    return RedirectToPage("/GebruikersTest/GebruikersTestResultaat");
+                }
+
                 return RedirectToPage();
             }
             catch (Exception ex)
             {
-                
-                ModelState.AddModelError(string.Empty, $"Er is een fout opgetreden: {ex.Message}");
+                logger.LogError(ex, "Fout bij verwerken antwoord");
+                FeedbackMessage = "Er is een fout opgetreden bij het opslaan van je antwoord.";
                 return Page();
             }
         }
 
-        private void LaadVolgendeVraag()
+        public IActionResult OnPostReset()
         {
-            var (vraagTekst, isKlaar) = testSessionService.HaalVolgendeVraag();
-            HuidigeVraag = vraagTekst;
-            IsTestKlaar = isKlaar;
-
-            // Bereken voortgang
-            var totaalVragen = testBeheer.HaalAlleCategorieënOp().Count +
-                              testBeheer.HaalAlleTestVragenOp().Count;
-            var huidigeVraagNummer = HttpContext.Session.GetInt32("Test_HuidigeStap") ?? 0;
-            VoortgangPercentage = (int)((double)huidigeVraagNummer / totaalVragen * 100);
-            IsLaatsteVraag = huidigeVraagNummer == totaalVragen - 1;
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId.HasValue)
+            {
+                testService.ResetTest(userId.Value);
+            }
+            return RedirectToPage();
         }
     }
 }

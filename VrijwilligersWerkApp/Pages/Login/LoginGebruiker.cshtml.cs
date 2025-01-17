@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Domain.Interfaces;
-using Domain.Models;
 using System.ComponentModel.DataAnnotations;
+using Domain.Gebruikers.Interfaces;
 
 namespace VrijwilligersWerkApp.Pages
 {

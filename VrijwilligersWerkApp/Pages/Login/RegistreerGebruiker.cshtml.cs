@@ -1,5 +1,5 @@
 using Domain;
-using Domain.Interfaces;
+using Domain.Gebruikers.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;

@@ -14,27 +14,27 @@
                     @if (ViewData["HasPreviousResults"] != null)
                     {
                         <div class="text-center mb-4">
-                            <p class="lead">Je hebt al eerdere testresultaten. Wil je opnieuw beginnen?</p>
+                            <p class="lead">Je hebt de test al voltooid. Wil je de test opnieuw maken?</p>
                             <form method="post" asp-page-handler="Reset">
                                 <button type="submit" class="btn btn-warning">Test Opnieuw Starten</button>
                             </form>
                         </div>
                     }
-                    else
+                    else if (Model.VraagModel != null)
                     {
                         <div class="progress mb-4">
                             <div class="progress-bar" role="progressbar"
-                                 style="width: @Model.VoortgangPercentage%"
-                                 aria-valuenow="@Model.VoortgangPercentage"
+                                 style="width: @Model.VraagModel.VoortgangPercentage%"
+                                 aria-valuenow="@Model.VraagModel.VoortgangPercentage"
                                  aria-valuemin="0"
                                  aria-valuemax="100">
-                                @Model.VoortgangPercentage%
+                                @Model.VraagModel.VoortgangPercentage%
                             </div>
                         </div>
 
-                        <h2 class="h4 mb-4">@Model.HuidigeVraag</h2>
+                        <h2 class="h4 mb-4">@Model.VraagModel.VraagTekst</h2>
 
-                        <form method="post" class="needs-validation" novalidate>
+                        <form method="post" asp-page-handler="Antwoord" class="needs-validation" novalidate>
                             <div class="form-group mb-4">
                                 <div class="btn-group d-flex" role="group">
                                     @for (int i = 1; i <= 5; i++)
@@ -50,19 +50,16 @@
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">
-                                    @(Model.IsLaatsteVraag ? "Afronden" : "Volgende")
+                                    Volgende
                                 </button>
                             </div>
                         </form>
                     }
 
-                    @if (Model.IsTestKlaar)
+                    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
                     {
-                        <div class="alert alert-success mt-4">
-                            <h3 class="h5">Test Voltooid!</h3>
-                            <p>Je kunt nu je resultaten bekijken.</p>
-                            <a href="/GebruikersTest/GebruikersTestResultaat"
-                               class="btn btn-success">Bekijk Resultaten</a>
+                        <div class="alert alert-danger mt-3">
+                            @Model.FeedbackMessage
                         </div>
                     }
                 </div>

@@ -1,21 +1,23 @@
-using Domain.Interfaces;
-using Domain;
-using Domain.Mapper;
-using Infrastructure.Repos_DB;
-using Infrastructure.Interfaces;
-using Domain.WachtwoordStrategy;
+using Application.Interfaces;
+using Application.Mapper;
+using Application.Service;
+using Application.ViewModels;
+using Domain.Common.Interfaces.Repository;
+using Domain.Gebruikers.Interfaces;
+using Domain.Gebruikers.Services;
+using Domain.Gebruikers.Services.WachtwoordStrategy;
+using Domain.Gebruikers.Services.WachtwoordStrategy.Interfaces;
+using Domain.GebruikersTest.Interfaces;
+using Domain.GebruikersTest.ScoreStrategy.Interfaces;
 using Domain.Vrijwilligerswerk_Test;
-using Domain.Vrijwilligerswerk_Test.Interfaces;
 using Domain.Vrijwilligerswerk_Test.ScoreStrategy;
-using VrijwilligersWerkApp.Services;
-using Domain.Models;
-using Domain.Vrijwilligerswerk_Test.Mapper;
+using Domain.Vrijwilligerswerk_Test.Services;
 using Domain.Vrijwilligerswerk_Test.WerkScore;
-using Infrastructure.DTO;
-using Infrastructure;
+using Domain.Werk.Interfaces;
+using Domain.Werk.Models;
+using Domain.Werk.Services;
+using Infrastructure.Repos_DB;
 using Microsoft.Extensions.Options;
-using Infrastructure.DTO.Vrijwilligerswerk_Test;
-using Domain.Vrijwilligerswerk_Test.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,9 +35,9 @@ builder.Services.AddHttpContextAccessor();
 
 // Database Settings
 builder.Services.Configure<DBSettings>(
-    builder.Configuration.GetSection("ConnectionStrings"));
+   builder.Configuration.GetSection("ConnectionStrings"));
 builder.Services.AddSingleton(sp =>
-    sp.GetRequiredService<IOptions<DBSettings>>().Value);
+   sp.GetRequiredService<IOptions<DBSettings>>().Value);
 
 // Infrastructure Layer
 builder.Services.AddScoped<IUserRepository, UserRepositoryDB>();
@@ -55,21 +57,25 @@ builder.Services.AddScoped<IWerkPresentatieService, WerkPresentatieService>();
 builder.Services.AddScoped<IWerkScoreService, WerkScoreService>();
 builder.Services.AddScoped<ICategorieService, CategorieService>();
 builder.Services.AddScoped<ITestVraagService, TestVraagService>();
+builder.Services.AddScoped<IGebruikersTestService, GebruikersTestService>();
+builder.Services.AddSingleton<ITestSessieBeheer, TestSessieBeheer>();  // Singleton omdat we state willen behouden
+
+// Application Layer Services
+builder.Services.AddScoped<IVrijwilligersWerkService, VrijwilligersWerkService>();
+builder.Services.AddScoped<IGebruikersTestResultaatService, GebruikersTestResultaatService>();
+
+
+
+// View Mappers
+builder.Services.AddScoped<IViewModelMapper<VrijwilligersWerkViewModel, VrijwilligersWerk>,
+   VrijwilligersWerkViewMapper>();
+
+
 
 // Wachtwoord Strategy
 builder.Services.AddScoped<IWachtwoordStrategy, DefaultWachtwoordStrategy>();
 
-// Mappers
-builder.Services.AddScoped<IMapper<VrijwilligersWerk, VrijwilligersWerkDTO>, WerkMapper>();
-builder.Services.AddScoped<IMapper<User, UserDTO>, UserMapper>();
-builder.Services.AddScoped<IMapper<WerkRegistratie, WerkRegistratieDTO>, RegistratieMapper>();
-builder.Services.AddScoped<IMapper<Categorie, CategorieDTO>, CategorieMapper>();
-builder.Services.AddScoped<IMapper<TestVraag, TestVraagDTO>, TestVraagMapper>();
-builder.Services.AddScoped<IMapper<WerkCategorie, WerkCategorieDTO>, WerkCategorieMapper>();
 
-
-// Application Services
-builder.Services.AddScoped<ITestSessionService, TestSessionService>();
 
 var app = builder.Build();
 

@@ -1,5 +1,7 @@
-using Domain.Interfaces;
-using Domain.Models;
+using Domain.Gebruikers.Interfaces;
+using Domain.Gebruikers.Models;
+using Domain.Werk.Interfaces;
+using Domain.Werk.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 

@@ -1,5 +1,5 @@
 ﻿@page
-@model VrijwilligersWerkApp.Pages.RegistreerWerk.VrijwilligersWerkOverzichtModel
+@model VrijwilligersWerkOverzichtModel
 @{
     ViewData["Title"] = "Overzicht van Vrijwilligerswerk";
 }
@@ -30,7 +30,7 @@
                 <tr>
                     <th scope="col">Titel</th>
                     <th scope="col">Beschrijving</th>
-                    <th scope="col">Categorie</th>
+                    <th scope="col">Categorieën</th>
                     <th scope="col">Bezetting</th>
                     <th scope="col">Acties</th>
                 </tr>
@@ -39,17 +39,17 @@
                 @foreach (var werk in Model.WerkAanbiedingen)
                 {
                     <tr>
-                        <td>@werk.Werk.Titel</td>
-                        <td>@werk.Werk.Omschrijving</td>
-                        <td>@werk.CategorieNaam</td>
-                        <td>@werk.HuidigeRegistraties / @werk.Werk.MaxCapaciteit</td>
+                        <td>@werk.Titel</td>
+                        <td>@werk.Omschrijving</td>
+                        <td>@werk.CategorieNamen</td>
+                        <td>@werk.HuidigeRegistraties / @werk.MaxCapaciteit</td>
                         <td>
                             <form method="post" asp-page-handler="Apply">
-                                <input type="hidden" name="id" value="@werk.Werk.WerkId" />
+                                <input type="hidden" name="id" value="@werk.WerkId" />
                                 <button type="submit"
                                         class="btn btn-primary btn-sm"
-                                @(werk.HuidigeRegistraties >= werk.Werk.MaxCapaciteit ? "disabled" : "")>
-                                    @(werk.HuidigeRegistraties >= werk.Werk.MaxCapaciteit ? "Vol" : "Registreer")
+                                @(werk.IsVol ? "disabled" : "")>
+                                    @(werk.IsVol ? "Vol" : "Registreer")
                                 </button>
                             </form>
                         </td>

@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Domain.Interfaces;
-using Domain.Models;
 using System.ComponentModel.DataAnnotations;
 using Domain.Vrijwilligerswerk_Test;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Infrastructure;
+using Domain.Werk.Interfaces;
+using Domain.GebruikersTest.Interfaces;
+using Domain.Werk.Models;
 
 namespace VrijwilligersWerkApp.Pages.NieuwWerk
 {

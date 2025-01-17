@@ -1,31 +1,26 @@
-﻿using Infrastructure.DTO;
-using Infrastructure.Interfaces;
-using Microsoft.Extensions.Options;
+﻿using Domain.Common.Data;
+using Domain.Common.Interfaces.Repository;
+using Domain.Gebruikers.Models;
+using Domain.Gebruikers.Services.WachtwoordStrategy.Interfaces;
 using MySql.Data.MySqlClient;
-using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Infrastructure.Repos_DB
 {
     public class UserRepositoryDB : IUserRepository
     {
-
         private readonly string connString;
         private MySqlConnection connection = null;
+        private readonly IWachtwoordStrategy wachtwoordStrategy;
 
-
-
-        public UserRepositoryDB(DBSettings settings)
+        public UserRepositoryDB(
+            DBSettings settings,
+            IWachtwoordStrategy wachtwoordStrategy)
         {
             connString = settings.DefaultConnection;
+            this.wachtwoordStrategy = wachtwoordStrategy;
         }
 
-
-        public bool IsConnect(string connString)
+        private bool IsConnect(string connString)
         {
             if (connection == null)
             {
@@ -35,13 +30,9 @@ namespace Infrastructure.Repos_DB
             return true;
         }
 
-
-        // ophalen
-
-
-        public List<UserDTO> GetUsers()
+        public List<User> GetUsers()
         {
-            List<UserDTO> userLijst = new List<UserDTO>();
+            var users = new List<User>();
 
             if (IsConnect(connString))
             {
@@ -54,25 +45,22 @@ namespace Infrastructure.Repos_DB
                         {
                             while (reader.Read())
                             {
-                                int id = reader.GetInt32("id");
-                                string voornaam = reader.GetString("first_name");
-                                string achternaam = reader.GetString("last_name");
-                                string email = reader.GetString("email");
-                                string passwordHash = reader.GetString("password");
-                                string salt = reader.GetString("salt");
-
-
-
-                                UserDTO user = new UserDTO(id, voornaam, achternaam, email, passwordHash, salt);
-                                userLijst.Add(user);
+                                var userData = new UserData(
+                                    reader.GetInt32("id"),
+                                    reader.GetString("first_name"),
+                                    reader.GetString("last_name"),
+                                    reader.GetString("email"),
+                                    reader.GetString("password"),
+                                    reader.GetString("salt")
+                                );
+                                users.Add(User.LaadVanuitData(userData, wachtwoordStrategy));
                             }
-                            reader.Close();
                         }
                     }
                     catch (MySqlException ex)
                     {
                         File.AppendAllText("error.log", $"Fout bij ophalen gebruikers: {ex.Message}" + Environment.NewLine);
-                        throw new Exception($"Kon gebruikers niet ophalen", ex);
+                        throw new Exception("Kon gebruikers niet ophalen", ex);
                     }
                     finally
                     {
@@ -80,200 +68,157 @@ namespace Infrastructure.Repos_DB
                         {
                             connection.Close();
                             connection = null;
-
                         }
                     }
                 }
             }
-            return userLijst;
-
+            return users;
         }
 
-
-
-        public UserDTO GetUserByEmail(string email)
-        {
-
-            UserDTO userDTO = null;
-
-            if (IsConnect(connString))
-            {
-                string query = "SELECT * FROM user WHERE email = @email";
-
-                try
-                {
-                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                    {
-
-                        cmd.Parameters.AddWithValue("@email", email);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-
-                                int id = reader.GetInt32("id");
-                                string voorNaam = reader.GetString("first_name");
-                                string achterNaam = reader.GetString("last_name");
-                                string passwordHash = reader.GetString("password");
-                                string salt = reader.GetString("salt");
-
-
-
-                                userDTO = new UserDTO(id, voorNaam, achterNaam, email, passwordHash, salt);
-                            }
-                        }
-                    }
-                }
-                catch (MySqlException ex)
-                {
-                    File.AppendAllText("error.log", $"Fout bij ophalen gebruiker: {ex.Message}" + Environment.NewLine);
-                    throw new Exception($"Kon gebruiker niet ophalen", ex);
-                }
-                finally
-                {
-                    if (connection != null)
-                    {
-                        connection.Close();
-                        connection = null;
-                    }
-                }
-            }
-
-            return userDTO;
-        }
-
-
-
-
-
-
-        public UserDTO GetUserOnId(int id)
-        {
-
-            UserDTO userDTO = null;
-
-            if (IsConnect(connString))
-            {
-                string query = "SELECT * FROM user WHERE id = @id";
-
-                try
-                {
-                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                    {
-
-                        cmd.Parameters.AddWithValue("@id", id);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-
-                                string naam = reader.GetString("first_name");
-                                string achterNaam = reader.GetString("last_name");
-                                string email = reader.GetString("email");
-                                string passwordHash = reader.GetString("password");
-                                string salt = reader.GetString("salt");
-
-
-
-                                userDTO = new UserDTO(id, naam, achterNaam, email, passwordHash, salt);
-                            }
-                        }
-                    }
-                }
-                catch (MySqlException ex)
-                {
-                    File.AppendAllText("error.log", $"Fout bij ophalen gebruiker {id}: {ex.Message}" + Environment.NewLine);
-                    throw new Exception($"Kon gebruiker {id} niet ophalen", ex);
-                }
-                finally
-                {
-                    if (connection != null)
-                    {
-                        connection.Close();
-                        connection = null;
-                    }
-                }
-            }
-
-            return userDTO;
-
-
-        }
-
-
-        // Voeg user toe
-
-
-        public void AddUser(UserDTO userDTO)
-        {
-
-            UserDTO dTO = null;
-
-            if (IsConnect(connString))
-            {
-                string query = @"INSERT INTO user(first_name, last_name, email, salt, password)
-                                VALUES (@naam, @achternaam,@email, @salt, @passwordHash)";
-
-                try
-                {
-                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                    {
-
-                        cmd.Parameters.AddWithValue("@naam", userDTO.Naam);
-                        cmd.Parameters.AddWithValue("@achternaam", userDTO.AchterNaam);
-                        cmd.Parameters.AddWithValue("email", userDTO.Email);
-                        cmd.Parameters.AddWithValue("@salt", userDTO.Salt);
-                        cmd.Parameters.AddWithValue("@passwordHash", userDTO.PasswordHash);
-
-
-                        cmd.ExecuteNonQuery();
-
-                    }
-
-
-                }
-
-                catch (MySqlException ex)
-                {
-                    File.AppendAllText("error.log", $"Fout bij toevoegen gebruiker: {ex.Message}" + Environment.NewLine);
-                    throw new Exception($"Kon gebruiker niet toevoegen", ex);
-
-                }
-                finally
-                {
-                    if (connection != null)
-                    {
-                        connection.Close();
-                        connection = null;
-                    }
-
-                }
-
-            }
-
-        }
-
-        // Verwijder een user
-        public bool VerwijderUser(int userId)
+        public User GetUserByEmail(string email)
         {
             if (!IsConnect(connString))
-                return false;
+                return null;
 
-            const string query = "DELETE FROM user WHERE id = @id";
+            string query = "SELECT * FROM user WHERE email = @email";
 
             try
             {
                 using (MySqlCommand cmd = new MySqlCommand(query, connection))
                 {
+                    cmd.Parameters.AddWithValue("@email", email);
 
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            var userData = new UserData(
+                                reader.GetInt32("id"),
+                                reader.GetString("first_name"),
+                                reader.GetString("last_name"),
+                                reader.GetString("email"),
+                                reader.GetString("password"),
+                                reader.GetString("salt")
+                            );
+                            return User.LaadVanuitData(userData, wachtwoordStrategy);
+                        }
+                    }
+                }
+            }
+            catch (MySqlException ex)
+            {
+                File.AppendAllText("error.log", $"Fout bij ophalen gebruiker: {ex.Message}" + Environment.NewLine);
+                throw new Exception("Kon gebruiker niet ophalen", ex);
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    connection.Close();
+                    connection = null;
+                }
+            }
+
+            return null;
+        }
+
+        public void AddUser(User user)
+        {
+            if (!IsConnect(connString))
+                return;
+
+            string query = @"INSERT INTO user(first_name, last_name, email, salt, password)
+                           VALUES (@naam, @achternaam, @email, @salt, @passwordHash)";
+
+            try
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                {
+                    var userData = user.NaarData();
+                    cmd.Parameters.AddWithValue("@naam", userData.Naam);
+                    cmd.Parameters.AddWithValue("@achternaam", userData.AchterNaam);
+                    cmd.Parameters.AddWithValue("@email", userData.Email);
+                    cmd.Parameters.AddWithValue("@salt", userData.Salt);
+                    cmd.Parameters.AddWithValue("@passwordHash", userData.PasswordHash);
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (MySqlException ex)
+            {
+                File.AppendAllText("error.log", $"Fout bij toevoegen gebruiker: {ex.Message}" + Environment.NewLine);
+                throw new Exception("Kon gebruiker niet toevoegen", ex);
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    connection.Close();
+                    connection = null;
+                }
+            }
+        }
+
+        public User GetUserOnId(int id)
+        {
+            if (!IsConnect(connString))
+                return null;
+
+            string query = "SELECT * FROM user WHERE id = @id";
+
+            try
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            var userData = new UserData(
+                                reader.GetInt32("id"),
+                                reader.GetString("first_name"),
+                                reader.GetString("last_name"),
+                                reader.GetString("email"),
+                                reader.GetString("password"),
+                                reader.GetString("salt")
+                            );
+                            return User.LaadVanuitData(userData, wachtwoordStrategy);
+                        }
+                    }
+                }
+            }
+            catch (MySqlException ex)
+            {
+                File.AppendAllText("error.log", $"Fout bij ophalen gebruiker {id}: {ex.Message}" + Environment.NewLine);
+                throw new Exception($"Kon gebruiker {id} niet ophalen", ex);
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    connection.Close();
+                    connection = null;
+                }
+            }
+
+            return null;
+        }
+
+        public bool VerwijderUser(int userId)
+        {
+            if (!IsConnect(connString))
+                return false;
+
+            string query = "DELETE FROM user WHERE id = @id";
+
+            try
+            {
+                using (MySqlCommand cmd = new MySqlCommand(query, connection))
+                {
                     cmd.Parameters.AddWithValue("@id", userId);
-
-
                     int rowsAffected = cmd.ExecuteNonQuery();
-
-
                     return rowsAffected > 0;
                 }
             }
@@ -291,12 +236,6 @@ namespace Infrastructure.Repos_DB
                 }
             }
         }
-
-
-
-
-
-
-
     }
 }
+

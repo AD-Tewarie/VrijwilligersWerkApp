@@ -1,51 +1,50 @@
-using Domain.Interfaces;
-using Domain.Models;
-using Domain.Vrijwilligerswerk_Test;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using VrijwilligersWerkApp.Extensions;
+using Application.Interfaces;
+using Application.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using VrijwilligersWerkApp.Services;
-using System.Text.Json;
-using VrijwilligersWerkApp.Helpers;
-using Domain.Vrijwilligerswerk_Test.PresentatieStrategy;
-using Domain.Vrijwilligerswerk_Test.WerkScore;
-using Domain.Vrijwilligerswerk_Test.Interfaces;
-using Infrastructure.Interfaces;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace VrijwilligersWerkApp.Pages.GebruikersTest
 {
     public class GebruikersTestResultaatModel : PageModel
     {
-        private readonly ITestSessionService testSessionService;
-        private readonly IRegistratieBeheer registratieBeheer;
+        private readonly IGebruikersTestResultaatService resultaatService;
+        private readonly IVrijwilligersWerkService werkService; 
+        private readonly ILogger<GebruikersTestResultaatModel> logger;
 
-        public List<WerkMetScore> AanbevolenWerk { get; private set; }
-        public Dictionary<Categorie, int> GesorteerdeScores { get; private set; }
-        public string FeedbackMessage { get; private set; }
+        public GebruikersTestResultaatViewModel ResultaatModel { get; private set; }
         public string SuccesMessage { get; private set; }
         public string ErrorMessage { get; private set; }
-        public string HuidigePresentatieType { get; private set; } = "top";
 
         public GebruikersTestResultaatModel(
-            ITestSessionService testSessionService,
-            IRegistratieBeheer registratieBeheer)
+            IGebruikersTestResultaatService resultaatService,
+            IVrijwilligersWerkService werkService, 
+            ILogger<GebruikersTestResultaatModel> logger)
         {
-            this.testSessionService = testSessionService;
-            this.registratieBeheer = registratieBeheer;
+            this.resultaatService = resultaatService;
+            this.werkService = werkService;
+            this.logger = logger;
         }
+
 
         public IActionResult OnGet(string presentatieType = "top")
         {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
+            {
+                return RedirectToPage("/Login/LoginGebruiker");
+            }
+
             try
             {
-                // Store the current presentation type
-                HuidigePresentatieType = presentatieType?.ToLower() ?? "top";
+                ResultaatModel = resultaatService.HaalResultaatOp(userId.Value, presentatieType);
 
-                if (!HttpContext.Session.GetInt32("UserId").HasValue)
+                if (ResultaatModel == null)
                 {
-                    return RedirectToPage("/Account/Login");
+                    TempData["ErrorMessage"] = "Je moet eerst de test voltooien.";
+                    return RedirectToPage("/GebruikersTest/GebruikersTest");
                 }
 
+                // Haal eventuele feedback berichten op van TempData
                 if (TempData["SuccesMessage"] != null)
                 {
                     SuccesMessage = TempData["SuccesMessage"].ToString();
@@ -55,46 +54,55 @@ namespace VrijwilligersWerkApp.Pages.GebruikersTest
                     ErrorMessage = TempData["ErrorMessage"].ToString();
                 }
 
-                var resultaat = testSessionService.BerekenResultaten(HuidigePresentatieType);
-
-                if (!resultaat.scores.Any())
-                {
-                    FeedbackMessage = "Geen testresultaten beschikbaar. Start de test opnieuw.";
-                    return RedirectToPage("/GebruikersTest/GebruikersTest");
-                }
-
-                GesorteerdeScores = resultaat.scores;
-                AanbevolenWerk = resultaat.werkMetScores;
-
                 return Page();
             }
             catch (Exception ex)
             {
-                ErrorMessage = "Er is een fout opgetreden bij het laden van de resultaten. Start de test opnieuw.";
-                return RedirectToPage("/GebruikersTest/GebruikersTest");
+                logger.LogError(ex, "Fout bij het ophalen van testresultaten");
+                ErrorMessage = "Er is een fout opgetreden bij het laden van de resultaten.";
+                return Page();
             }
         }
 
         public IActionResult OnPostApplyForJob(int werkId)
         {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
+            {
+                return RedirectToPage("/Login/LoginGebruiker");
+            }
+
             try
             {
-                var userId = HttpContext.Session.GetInt32("UserId");
-                if (!userId.HasValue)
+                bool success = werkService.RegistreerVoorWerk(werkId, userId.Value); // Gebruik werkService
+                if (success)
                 {
-                    return RedirectToPage("/Account/Login");
+                    TempData["SuccesMessage"] = "Je bent succesvol geregistreerd voor dit vrijwilligerswerk!";
                 }
-
-                registratieBeheer.RegistreerGebruikerVoorWerk(userId.Value, werkId);
-                TempData["SuccesMessage"] = "Je bent succesvol geregistreerd voor dit vrijwilligerswerk!";
+                else
+                {
+                    TempData["ErrorMessage"] = "Registratie mislukt. Mogelijk is het werk vol of ben je al geregistreerd.";
+                }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Registratie mislukt: {ex.Message}";
+                logger.LogError(ex, "Fout bij registreren voor werk {WerkId}", werkId);
+                TempData["ErrorMessage"] = "Er is een fout opgetreden bij de registratie.";
             }
 
-            // Redirect back to the same page with the same presentation type
-            return RedirectToPage(new { presentatieType = HuidigePresentatieType });
+            return RedirectToPage(new { presentatieType = ResultaatModel?.HuidigePresentatieType ?? "top" });
+        }
+
+
+
+        public IActionResult OnPostResetTest()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId.HasValue)
+            {
+                return RedirectToPage("/GebruikersTest/GebruikersTest", new { reset = true });
+            }
+            return RedirectToPage("/Login/LoginGebruiker");
         }
     }
 }
