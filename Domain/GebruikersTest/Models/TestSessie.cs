@@ -1,54 +1,75 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
-namespace Domain.Vrijwilligerswerk_Test.Models
+namespace Domain.GebruikersTest.Models
 {
     public class TestSessie
     {
-        public int HuidigeVraagNummer { get; private set; }
+        [JsonInclude]
+        public int GebruikerId { get; private set; }
+
+        [JsonInclude]
         public Dictionary<int, int> Affiniteiten { get; private set; }
+
+        [JsonInclude]
         public Dictionary<int, int> Antwoorden { get; private set; }
 
-        private TestSessie()
+        [JsonInclude]
+        public int HuidigeStap { get; private set; }
+
+        [JsonInclude]
+        public bool IsVoltooid { get; private set; }
+
+        [JsonConstructor]
+        private TestSessie(int gebruikerId, Dictionary<int, int> affiniteiten, Dictionary<int, int> antwoorden, int huidigeStap, bool isVoltooid)
         {
-            HuidigeVraagNummer = 0;
-            Affiniteiten = new Dictionary<int, int>();
-            Antwoorden = new Dictionary<int, int>();
+            GebruikerId = gebruikerId;
+            Affiniteiten = affiniteiten;
+            Antwoorden = antwoorden;
+            HuidigeStap = huidigeStap;
+            IsVoltooid = isVoltooid;
         }
 
-        public static TestSessie Start()
+        private TestSessie(int gebruikerId)
         {
-            return new TestSessie();
+            GebruikerId = gebruikerId;
+            Affiniteiten = new Dictionary<int, int>();
+            Antwoorden = new Dictionary<int, int>();
+            HuidigeStap = 0;
+            IsVoltooid = false;
+        }
+
+        public static TestSessie Start(int gebruikerId)
+        {
+            return new TestSessie(gebruikerId);
+        }
+
+        public void ZetAffiniteit(int categorieId, int score)
+        {
+            Affiniteiten[categorieId] = score;
         }
 
         public void VoegAntwoordToe(int vraagId, int antwoord)
         {
-            if (HuidigeVraagNummer < Affiniteiten.Count)
-            {
-                Affiniteiten[vraagId] = antwoord;
-            }
-            else
-            {
-                Antwoorden[vraagId] = antwoord;
-            }
-            HuidigeVraagNummer++;
+            Antwoorden[vraagId] = antwoord;
         }
 
-      
+        public void VerhoogStap()
+        {
+            HuidigeStap++;
+        }
+
+        public void RondAf()
+        {
+            IsVoltooid = true;
+        }
 
         public void Reset()
         {
-            HuidigeVraagNummer = 0;
             Affiniteiten.Clear();
             Antwoorden.Clear();
-        }
-
-        public bool HeeftAntwoorden()
-        {
-            return HuidigeVraagNummer > 0 || Affiniteiten.Any() || Antwoorden.Any();
+            HuidigeStap = 0;
+            IsVoltooid = false;
         }
     }
 }

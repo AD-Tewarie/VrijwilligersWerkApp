@@ -1,18 +1,14 @@
+using Application.Authenticatie.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Domain.Gebruikers.Interfaces;
 
-namespace VrijwilligersWerkApp.Pages
+namespace VrijwilligersWerkApp.Pages.Login
 {
     public class LoginModel : PageModel
     {
-        private readonly IUserBeheer userBeheer;
-
-        public LoginModel(IUserBeheer userBeheer)
-        {
-            this.userBeheer = userBeheer;
-        }
+        private readonly IAuthenticatieService authenticatieService;
+        private readonly ILogger<LoginModel> logger;
 
         [BindProperty]
         [Required(ErrorMessage = "Email is verplicht.")]
@@ -24,7 +20,13 @@ namespace VrijwilligersWerkApp.Pages
 
         public string FeedbackMessage { get; set; }
 
-
+        public LoginModel(
+            IAuthenticatieService authenticatieService,
+            ILogger<LoginModel> logger)
+        {
+            this.authenticatieService = authenticatieService ?? throw new ArgumentNullException(nameof(authenticatieService));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
         public IActionResult OnPost()
         {
@@ -32,12 +34,11 @@ namespace VrijwilligersWerkApp.Pages
             {
                 try
                 {
-                    if (userBeheer.ValideerGebruiker(Email, Wachtwoord))
+                    if (authenticatieService.Login(Email, Wachtwoord))
                     {
-                        var user = userBeheer.HaalGebruikerOpEmail(Email);
-
-                        HttpContext.Session.SetString("Gebruiker", user.Naam);    
-                        HttpContext.Session.SetInt32("UserId", user.UserId);
+                        var gebruiker = authenticatieService.HaalGebruikerOpEmail(Email);
+                        HttpContext.Session.SetString("Gebruiker", gebruiker.Naam);    
+                        HttpContext.Session.SetInt32("UserId", gebruiker.UserId);
                         FeedbackMessage = "Succesvol ingelogd!";
                         return RedirectToPage("/Home");
                     }
@@ -45,7 +46,8 @@ namespace VrijwilligersWerkApp.Pages
                 }
                 catch (Exception ex)
                 {
-                    FeedbackMessage = $"Er is een fout opgetreden: {ex.Message}";
+                    logger.LogError(ex, "Fout tijdens inloggen voor gebruiker {Email}", Email);
+                    FeedbackMessage = "Er is een fout opgetreden tijdens het inloggen.";
                 }
             }
 

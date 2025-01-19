@@ -1,7 +1,7 @@
-using Domain.Gebruikers.Interfaces;
-using Domain.Gebruikers.Models;
-using Domain.Werk.Interfaces;
-using Domain.Werk.Models;
+using Application.GebruikersProfiel.Interfaces;
+using Application.GebruikersProfiel.ViewModels;
+using Application.Werk.Interfaces;
+using Application.Werk.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -9,71 +9,77 @@ namespace VrijwilligersWerkApp.Pages.MijnProfiel
 {
     public class GebruikersProfielModel : PageModel
     {
-        private readonly IUserBeheer userBeheer;
-        private readonly IRegistratieBeheer registratieBeheer;
+        private readonly IGebruikersProfielService gebruikersProfielService;
+        private readonly IWerkRegistratieBeheerService werkRegistratieBeheerService;
+        private readonly IWerkRegistratieOverzichtService werkRegistratieOverzichtService;
+        private readonly ILogger<GebruikersProfielModel> logger;
 
-        public User HuidigeGebruiker { get; set; }
-        public List<WerkRegistratie> Registraties { get; set; }
-        public string SuccesMessage { get; set; }
-        public string ErrorMessage { get; set; }
+        public GebruikersProfielViewModel ProfielData { get; private set; }
+        public List<WerkRegistratieViewModel> Registraties { get; private set; }
 
-        public GebruikersProfielModel(IUserBeheer userBeheer, IRegistratieBeheer registratieBeheer)
+        public GebruikersProfielModel(
+            IGebruikersProfielService gebruikersProfielService,
+            IWerkRegistratieBeheerService werkRegistratieBeheerService,
+            IWerkRegistratieOverzichtService werkRegistratieOverzichtService,
+            ILogger<GebruikersProfielModel> logger)
         {
-            this.userBeheer = userBeheer;
-            this.registratieBeheer = registratieBeheer;
+            this.gebruikersProfielService = gebruikersProfielService ?? throw new ArgumentNullException(nameof(gebruikersProfielService));
+            this.werkRegistratieBeheerService = werkRegistratieBeheerService ?? throw new ArgumentNullException(nameof(werkRegistratieBeheerService));
+            this.werkRegistratieOverzichtService = werkRegistratieOverzichtService ?? throw new ArgumentNullException(nameof(werkRegistratieOverzichtService));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public IActionResult OnGet()
         {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue)
+            var gebruikerId = HttpContext.Session.GetInt32("UserId");
+            if (!gebruikerId.HasValue)
             {
                 return RedirectToPage("/Login/LoginGebruiker");
             }
 
             try
             {
-                // Haal gebruiker op
-                HuidigeGebruiker = userBeheer.HaalGebruikerOpID(userId.Value);
-                if (HuidigeGebruiker == null)
+                if (!gebruikersProfielService.BestaatGebruiker(gebruikerId.Value))
                 {
-                    throw new Exception("Gebruiker niet gevonden");
+                    return RedirectToPage("/Login/LoginGebruiker");
                 }
 
-                // Haal registraties op
-                Registraties = registratieBeheer.HaalRegistratiesOp()
-                    .Where(r => r.User.UserId == userId.Value)
-                    .ToList();
-
-                // Haal eventuele feedback messages op uit TempData
-                if (TempData["SuccesMessage"] != null)
-                {
-                    SuccesMessage = TempData["SuccesMessage"].ToString();
-                }
-                if (TempData["ErrorMessage"] != null)
-                {
-                    ErrorMessage = TempData["ErrorMessage"].ToString();
-                }
-
+                ProfielData = gebruikersProfielService.HaalProfielOp(gebruikerId.Value);
+                Registraties = werkRegistratieOverzichtService.HaalRegistratiesOp(gebruikerId.Value);
                 return Page();
             }
             catch (Exception ex)
             {
-                ErrorMessage = $"Er is een fout opgetreden: {ex.Message}";
-                return Page();
+                logger.LogError(ex, "Fout bij ophalen gebruikersprofiel voor gebruiker {GebruikerId}", gebruikerId);
+                TempData["ErrorMessage"] = "Er is een fout opgetreden bij het ophalen van uw profiel.";
+                return RedirectToPage("/Home");
             }
         }
 
-        public IActionResult OnPostCancelRegistration(int registratieId)
+        public IActionResult OnPostAnnuleerRegistratie(int werkId)
         {
+            var gebruikerId = HttpContext.Session.GetInt32("UserId");
+            if (!gebruikerId.HasValue)
+            {
+                return RedirectToPage("/Login/LoginGebruiker");
+            }
+
             try
             {
-                registratieBeheer.VerwijderRegistratie(registratieId);
-                TempData["SuccesMessage"] = "Registratie succesvol geannuleerd.";
+                var result = werkRegistratieBeheerService.TrekRegistratieIn(werkId, gebruikerId.Value);
+                if (result.IsSuccesvol)
+                {
+                    TempData["SuccessMessage"] = result.Melding;
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = result.Melding;
+                }
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = $"Fout bij het annuleren van de registratie: {ex.Message}";
+                logger.LogError(ex, "Fout bij annuleren registratie voor werk {WerkId} door gebruiker {GebruikerId}", werkId, gebruikerId);
+                TempData["ErrorMessage"] = "Er is een fout opgetreden bij het annuleren van de registratie.";
             }
 
             return RedirectToPage();

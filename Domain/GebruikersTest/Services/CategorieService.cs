@@ -1,8 +1,8 @@
 ﻿using Domain.Common.Interfaces.Repository;
 using Domain.GebruikersTest.Interfaces;
-using Domain.Vrijwilligerswerk_Test.Models;
+using Domain.GebruikersTest.Models;
 
-namespace Domain.Vrijwilligerswerk_Test
+namespace Domain.GebruikersTest.Services
 {
     public class CategorieService : ICategorieService
     {

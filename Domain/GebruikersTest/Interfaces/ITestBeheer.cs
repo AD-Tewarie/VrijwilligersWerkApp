@@ -1,21 +1,13 @@
-﻿using Domain.Vrijwilligerswerk_Test;
-using Domain.Vrijwilligerswerk_Test.Models;
-using Domain.Werk.Models;
+﻿﻿using Domain.GebruikersTest.Models;
 
 namespace Domain.GebruikersTest.Interfaces
 {
     public interface ITestBeheer
     {
-        List<VrijwilligersWerk> ZoekGeschiktWerk(
-       Dictionary<int, int> affiniteiten,
-       Dictionary<int, int> antwoorden,
-       List<VrijwilligersWerk> beschikbaarWerk,
-       string presentatieType);
-
-        Dictionary<Categorie, int> BerekenTestScores(
-            Dictionary<int, int> affiniteiten,
-            Dictionary<int, int> antwoorden);
-
+        TestSessie StartTest(int gebruikerId);
+        void BeantwoordVraag(int gebruikerId, int vraagId, int antwoord);
+        void ZetAffiniteit(int gebruikerId, int categorieId, int score);
+        Dictionary<Categorie, int> RondTestAf(int gebruikerId);
         List<Categorie> HaalAlleCategorieënOp();
         List<TestVraag> HaalAlleTestVragenOp();
         Categorie GetCategorieOpId(int id);

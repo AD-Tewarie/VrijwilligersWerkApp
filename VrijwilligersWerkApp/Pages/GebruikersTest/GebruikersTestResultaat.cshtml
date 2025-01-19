@@ -1,6 +1,5 @@
-﻿@page
+@page
 @model VrijwilligersWerkApp.Pages.GebruikersTest.GebruikersTestResultaatModel
-@using Domain.Vrijwilligerswerk_Test.PresentatieStrategy
 
 <div class="container mt-4">
     <h2>Test Resultaten</h2>
@@ -21,135 +20,152 @@
         </div>
     }
 
-    <!-- Presentatie type selector -->
-    <div class="mb-4">
-        <h4>Weergave Type:</h4>
-        <div class="btn-group" role="group">
-            <a href="?presentatieType=top"
-               class="btn @(Model.ResultaatModel.HuidigePresentatieType == "top" ? "btn-primary" : "btn-secondary")">
-                Top 5 Resultaten
-            </a>
-            <a href="?presentatieType=minimum"
-               class="btn @(Model.ResultaatModel.HuidigePresentatieType == "minimum" ? "btn-primary" : "btn-secondary")">
-                Minimum Score (50+)
-            </a>
-            <a href="?presentatieType=alle"
-               class="btn @(Model.ResultaatModel.HuidigePresentatieType == "alle" ? "btn-primary" : "btn-secondary")">
-                Alle Resultaten
-            </a>
+    <div class="row">
+        <!-- Categorie Scores -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">Scores per Categorie</h4>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var score in Model.ResultaatModel.CategorieScores.OrderByDescending(s => s.Score))
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                @score.CategorieNaam
+                                <span class="badge bg-primary rounded-pill">@score.Score%</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Presentatie type selector -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">Weergave Opties</h4>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" onclick="updatePresentationType('top')"
+                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "top" ? "btn-primary" : "btn-outline-primary")">
+                            Top Matches
+                        </button>
+                        <button type="button" onclick="updatePresentationType('alle')"
+                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "alle" ? "btn-primary" : "btn-outline-primary")">
+                            Alle Opties
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="minimumScore" class="form-label">Minimale Match Score:</label>
+                        <div class="d-flex align-items-center">
+                            <input type="range" class="form-range" id="minimumScore" min="0" max="100" 
+                                   value="@(Request.Query["minimumScore"].ToString() ?? "50")"
+                                   oninput="updateScoreDisplay(this.value)"
+                                   onchange="updateScore(this.value)">
+                            <span id="scoreValue" class="ms-2">@(Request.Query["minimumScore"].ToString() ?? "50")%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aanbevolen Werk -->
+        <div class="col-md-8" id="aanbevolenWerkContainer">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">Aanbevolen Vrijwilligerswerk</h4>
+                </div>
+                <div class="card-body">
+                    @if (Model.ResultaatModel.AanbevolenWerk != null && Model.ResultaatModel.AanbevolenWerk.Any())
+                    {
+                        foreach (var werk in Model.ResultaatModel.AanbevolenWerk)
+                        {
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h5 class="card-title mb-0">@werk.Titel</h5>
+                                        <span class="badge bg-info">Match: @werk.MatchPercentage%</span>
+                                    </div>
+                                    <p class="card-text">@werk.Omschrijving</p>
+                                    <form method="post" asp-page-handler="RegistreerVoorWerk">
+                                        <input type="hidden" name="werkId" value="@werk.WerkId" />
+                                        <button type="submit" class="btn btn-primary">Aanmelden</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            Geen aanbevolen werk gevonden voor de huidige selectie.
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 
-    @if (Model.ResultaatModel.GesorteerdeScores != null && Model.ResultaatModel.GesorteerdeScores.Any())
-    {
-        <div class="row">
-            <!-- Categorie Scores -->
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h4 class="card-title mb-0">Scores per Categorie</h4>
-                    </div>
-                    <div class="card-body p-0">
-                        <ul class="list-group list-group-flush">
-                            @foreach (var score in Model.ResultaatModel.GesorteerdeScores.OrderByDescending(s => s.Value))
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    @score.Key.Naam
-                                    <span class="badge bg-primary rounded-pill">@score.Value</span>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Aanbevolen Werk -->
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h4 class="card-title mb-0">Aanbevolen Vrijwilligerswerk</h4>
-                    </div>
-                    <div class="card-body">
-                        @if (Model.ResultaatModel.AanbevolenWerk != null && Model.ResultaatModel.AanbevolenWerk.Any())
-                        {
-                            <div class="row">
-                                @foreach (var werkMetScore in Model.ResultaatModel.AanbevolenWerk)
-                                {
-                                    <div class="col-12 mb-3">
-                                        <div class="card h-100 shadow-sm">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <h5 class="card-title mb-0">@werkMetScore.Werk.Titel</h5>
-                                                    <span class="badge bg-info">Match Score: @werkMetScore.Score%</span>
-                                                </div>
-
-                                                <p class="card-text mb-3">@werkMetScore.Werk.Omschrijving</p>
-
-                                                <div class="mb-3">
-                                                    <small class="text-muted d-block mb-1">
-                                                        Bezetting: @werkMetScore.Werk.AantalRegistraties / @werkMetScore.Werk.MaxCapaciteit
-                                                    </small>
-                                                    <div class="progress" style="height: 10px;">
-                                                        @{
-                                                            var percentage = (werkMetScore.Werk.AantalRegistraties / (float)werkMetScore.Werk.MaxCapaciteit) * 100;
-                                                            var progressClass = percentage >= 100 ? "bg-danger"
-                                                            : percentage >= 80 ? "bg-warning"
-                                                            : "bg-success";
-                                                        }
-                                                        <div class="progress-bar @progressClass"
-                                                             role="progressbar"
-                                                             style="width: @percentage%"
-                                                             aria-valuenow="@percentage"
-                                                             aria-valuemin="0"
-                                                             aria-valuemax="100">
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <span class="badge bg-light text-dark">
-                                                        Beschikbare plaatsen: @(werkMetScore.Werk.MaxCapaciteit - werkMetScore.Werk.AantalRegistraties)
-                                                    </span>
-                                                    <form method="post" asp-page-handler="ApplyForJob">
-                                                        <input type="hidden" name="werkId" value="@werkMetScore.Werk.WerkId" />
-                                                        <button type="submit"
-                                                                class="btn @(werkMetScore.Werk.AantalRegistraties >= werkMetScore.Werk.MaxCapaciteit ? "btn-secondary" : "btn-primary")"
-                                                        @(werkMetScore.Werk.AantalRegistraties >= werkMetScore.Werk.MaxCapaciteit ? "disabled" : "")>
-                                                            @(werkMetScore.Werk.AantalRegistraties >= werkMetScore.Werk.MaxCapaciteit ? "Vol" : "Registreer")
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-info">
-                                Geen aanbevolen werk gevonden voor de huidige selectie.
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-warning">
-            @(Model.ErrorMessage ?? "Geen resultaten beschikbaar. Start de test opnieuw.")
-        </div>
-    }
+    <div class="text-center mt-4">
+        <form method="post" asp-page-handler="NieuweTest" class="d-inline">
+            <button type="submit" class="btn btn-warning">Test Opnieuw Maken</button>
+        </form>
+        <a href="/Home" class="btn btn-secondary ms-2">Terug naar Home</a>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        // Enable Bootstrap tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
+        function updateScoreDisplay(value) {
+            document.getElementById('scoreValue').textContent = value + '%';
+        }
+
+        function updateScore(value) {
+            updateResults('top', value);
+        }
+
+        function updatePresentationType(type) {
+            const score = document.getElementById('minimumScore').value;
+            updateResults(type, score);
+        }
+
+        function updateResults(presentatieType, minimumScore) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('presentatieType', presentatieType);
+            url.searchParams.set('minimumScore', minimumScore);
+
+            fetch(url.toString())
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Update the aanbevolen werk section
+                    const newContent = doc.querySelector('#aanbevolenWerkContainer');
+                    document.querySelector('#aanbevolenWerkContainer').innerHTML = newContent.innerHTML;
+
+                    // Update presentation type buttons
+                    const buttons = document.querySelectorAll('.btn-group .btn');
+                    buttons.forEach(button => {
+                        if (button.textContent.trim().toLowerCase().includes(presentatieType)) {
+                            button.classList.remove('btn-outline-primary');
+                            button.classList.add('btn-primary');
+                        } else {
+                            button.classList.remove('btn-primary');
+                            button.classList.add('btn-outline-primary');
+                        }
+                    });
+
+                    // Update URL without page reload
+                    window.history.pushState({}, '', url.toString());
+                });
+        }
+
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
     </script>
 }

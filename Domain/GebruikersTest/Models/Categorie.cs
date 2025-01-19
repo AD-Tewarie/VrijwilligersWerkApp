@@ -1,26 +1,18 @@
-﻿namespace Domain.Vrijwilligerswerk_Test
+﻿﻿namespace Domain.GebruikersTest.Models;
+
+public class Categorie
 {
-    public class Categorie
+    public int Id { get; private set; }
+    public string Naam { get; private set; }
+
+    private Categorie(int id, string naam)
     {
-        public int Id { get; private set; }
-        public string Naam { get; private set; }
+        Id = id;
+        Naam = naam;
+    }
 
-        private Categorie(int id, string naam)
-        {
-            ValideerCategorie(naam);
-            Id = id;
-            Naam = naam;
-        }
-
-        public static Categorie Maak(int id, string naam)
-        {
-            return new Categorie(id, naam);
-        }
-
-        private static void ValideerCategorie(string naam)
-        {
-            if (string.IsNullOrWhiteSpace(naam))
-                throw new ArgumentException("Naam mag niet leeg zijn.");
-        }
+    public static Categorie Maak(int id, string naam)
+    {
+        return new Categorie(id, naam);
     }
 }

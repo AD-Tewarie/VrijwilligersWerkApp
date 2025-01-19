@@ -1,283 +1,145 @@
-﻿using Domain.Common.Interfaces.Repository;
-using Domain.Vrijwilligerswerk_Test;
-using Domain.Vrijwilligerswerk_Test.Models;
-using MySql.Data.MySqlClient;
+﻿﻿using Domain.Common.Interfaces;
+using Domain.Common.Interfaces.Repository;
+using Domain.GebruikersTest.Models;
+using Domain.Common.Exceptions;
+using MySqlConnector;
 
-namespace Infrastructure.Repos_DB
+namespace Infrastructure.Repos_DB;
+
+public class GebruikersTestRepositoryDB : IGebruikersTestRepository
 {
-    public class GebruikersTestRepositoryDB : IGebruikersTestRepository
+    private readonly IDatabaseService databaseService;
+
+    public GebruikersTestRepositoryDB(IDatabaseService databaseService)
     {
-        private readonly string connString;
-        private MySqlConnection connection = null;
+        this.databaseService = databaseService;
+    }
 
-        public GebruikersTestRepositoryDB(DBSettings settings)
+    public List<Categorie> HaalAlleCategorieënOp()
+    {
+        var categorieën = new List<Categorie>();
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                id,
+                IF(name IS NULL OR name = '', 'Onbekende categorie', name) as name
+            FROM categories");
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        while (reader.Read())
         {
-            connString = settings.DefaultConnection;
+            categorieën.Add(Categorie.Maak(
+                reader.GetInt32("id"),
+                reader.GetString("name")
+            ));
         }
 
-        private bool IsConnect(string connString)
+        return categorieën;
+    }
+
+    public Categorie? GetCategorieOnId(int id)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                id,
+                IF(name IS NULL OR name = '', 'Onbekende categorie', name) as name
+            FROM categories
+            WHERE id = @id");
+        command.AddParameter("@id", id);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
         {
-            if (connection == null)
-            {
-                connection = new MySqlConnection(connString);
-                connection.Open();
-            }
-            return true;
+            return Categorie.Maak(
+                reader.GetInt32("id"),
+                reader.GetString("name")
+            );
         }
 
-        public List<Categorie> HaalAlleCategorieënOp()
-        {
-            var categorieën = new List<Categorie>();
+        return null;
+    }
 
-            if (IsConnect(connString))
-            {
-                string query = "SELECT id, name FROM categories";
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    try
-                    {
-                        using (MySqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                categorieën.Add(Categorie.Maak(
-                                    reader.GetInt32("id"),
-                                    reader.GetString("name")
-                                ));
-                            }
-                        }
-                    }
-                    catch (MySqlException ex)
-                    {
-                        File.AppendAllText("error.log", $"Fout bij ophalen categorieën: {ex.Message}" + Environment.NewLine);
-                        throw new Exception("Kon categorieën niet ophalen", ex);
-                    }
-                    finally
-                    {
-                        if (connection != null)
-                        {
-                            connection.Close();
-                            connection = null;
-                        }
-                    }
-                }
-            }
-            return categorieën;
+    public List<TestVraag> HaalAlleTestVragenOp()
+    {
+        var vragen = new List<TestVraag>();
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                id,
+                IF(text IS NULL OR text = '', 'Geen vraag beschikbaar', text) as text,
+                IF(category_id <= 0, 1, category_id) as category_id
+            FROM questions");
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        while (reader.Read())
+        {
+            vragen.Add(TestVraag.Maak(
+                reader.GetInt32("id"),
+                reader.GetString("text"),
+                reader.GetInt32("category_id")
+            ));
         }
 
-        public Categorie GetCategorieOnId(int id)
+        return vragen;
+    }
+
+    public TestVraag? GetTestVraagOnId(int id)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                id,
+                IF(text IS NULL OR text = '', 'Geen vraag beschikbaar', text) as text,
+                IF(category_id <= 0, 1, category_id) as category_id
+            FROM questions
+            WHERE id = @id");
+        command.AddParameter("@id", id);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
         {
-            if (!IsConnect(connString))
-                return null;
-
-            string query = "SELECT id, name FROM categories WHERE id = @id";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@id", id);
-
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            return Categorie.Maak(
-                                reader.GetInt32("id"),
-                                reader.GetString("name")
-                            );
-                        }
-                    }
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij ophalen categorie: {ex.Message}" + Environment.NewLine);
-                throw new Exception("Kon categorie niet ophalen", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-
-            return null;
+            return TestVraag.Maak(
+                reader.GetInt32("id"),
+                reader.GetString("text"),
+                reader.GetInt32("category_id")
+            );
         }
 
-        public List<TestVraag> HaalAlleTestVragenOp()
-        {
-            var vragen = new List<TestVraag>();
+        return null;
+    }
 
-            if (IsConnect(connString))
-            {
-                string query = "SELECT id, text, category_id FROM questions";
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    try
-                    {
-                        using (MySqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                vragen.Add(TestVraag.Maak(
-                                    reader.GetInt32("id"),
-                                    reader.GetString("text"),
-                                    reader.GetInt32("category_id")
-                                ));
-                            }
-                        }
-                    }
-                    catch (MySqlException ex)
-                    {
-                        File.AppendAllText("error.log", $"Fout bij ophalen testvragen: {ex.Message}" + Environment.NewLine);
-                        throw new Exception("Kon testvragen niet ophalen", ex);
-                    }
-                    finally
-                    {
-                        if (connection != null)
-                        {
-                            connection.Close();
-                            connection = null;
-                        }
-                    }
-                }
-            }
-            return vragen;
+    public List<WerkCategorie> GetWerkCategorieënByWerkId(int werkId)
+    {
+        var categorieën = new List<WerkCategorie>();
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                work_id,
+                category_id
+            FROM work_categories
+            WHERE work_id = @werk_id");
+        command.AddParameter("@werk_id", werkId);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        while (reader.Read())
+        {
+            categorieën.Add(WerkCategorie.Maak(
+                reader.GetInt32("work_id"),
+                reader.GetInt32("category_id")
+            ));
         }
 
-        public TestVraag GetTestVraagOnId(int id)
-        {
-            if (!IsConnect(connString))
-                return null;
-
-            string query = "SELECT id, text, category_id FROM questions WHERE id = @id";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@id", id);
-
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            return TestVraag.Maak(
-                                reader.GetInt32("id"),
-                                reader.GetString("text"),
-                                reader.GetInt32("category_id")
-                            );
-                        }
-                    }
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij ophalen testvraag: {ex.Message}" + Environment.NewLine);
-                throw new Exception("Kon testvraag niet ophalen", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-
-            return null;
-        }
-
-        public List<TestVraag> GetTestVraagOpCategorieId(int categorieId)
-        {
-            var vragen = new List<TestVraag>();
-
-            if (IsConnect(connString))
-            {
-                string query = "SELECT id, text, category_id FROM questions WHERE category_id = @categorieId";
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    try
-                    {
-                        cmd.Parameters.AddWithValue("@categorieId", categorieId);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                vragen.Add(TestVraag.Maak(
-                                    reader.GetInt32("id"),
-                                    reader.GetString("text"),
-                                    reader.GetInt32("category_id")
-                                ));
-                            }
-                        }
-                    }
-                    catch (MySqlException ex)
-                    {
-                        File.AppendAllText("error.log", $"Fout bij ophalen testvragen voor categorie: {ex.Message}" + Environment.NewLine);
-                        throw new Exception("Kon testvragen niet ophalen", ex);
-                    }
-                    finally
-                    {
-                        if (connection != null)
-                        {
-                            connection.Close();
-                            connection = null;
-                        }
-                    }
-                }
-            }
-
-            return vragen;
-        }
-
-        public List<WerkCategorie> GetWerkCategorieënByWerkId(int werkId)
-        {
-            var werkCategorieën = new List<WerkCategorie>();
-
-            if (IsConnect(connString))
-            {
-                string query = "SELECT work_id, category_id FROM work_categories WHERE work_id = @werkId";
-
-                try
-                {
-                    using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                    {
-                        cmd.Parameters.AddWithValue("@werkId", werkId);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                werkCategorieën.Add(WerkCategorie.Maak(
-                                    reader.GetInt32("work_id"),
-                                    reader.GetInt32("category_id")
-                                ));
-                            }
-                        }
-                    }
-                }
-                catch (MySqlException ex)
-                {
-                    File.AppendAllText("error.log", $"Fout bij ophalen werkcategorieën: {ex.Message}" + Environment.NewLine);
-                    throw new Exception("Kon werkcategorieën niet ophalen", ex);
-                }
-                finally
-                {
-                    if (connection != null)
-                    {
-                        connection.Close();
-                        connection = null;
-                    }
-                }
-            }
-
-            return werkCategorieën;
-        }
+        return categorieën;
     }
 }
-

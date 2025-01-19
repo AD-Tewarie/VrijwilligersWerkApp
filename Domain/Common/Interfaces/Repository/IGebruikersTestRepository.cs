@@ -1,17 +1,14 @@
-﻿using Domain.Vrijwilligerswerk_Test;
-using Domain.Vrijwilligerswerk_Test.Models;
+﻿﻿using System.Collections.Generic;
+using Domain.GebruikersTest.Models;
 
 namespace Domain.Common.Interfaces.Repository
 {
     public interface IGebruikersTestRepository
     {
         List<Categorie> HaalAlleCategorieënOp();
-        public Categorie GetCategorieOnId(int id);
-        public List<TestVraag> HaalAlleTestVragenOp();
-        public TestVraag GetTestVraagOnId(int id);
-        public List<WerkCategorie> GetWerkCategorieënByWerkId(int werkId);
-
-
+        Categorie? GetCategorieOnId(int id);
+        List<TestVraag> HaalAlleTestVragenOp();
+        TestVraag? GetTestVraagOnId(int id);
+        List<WerkCategorie> GetWerkCategorieënByWerkId(int werkId);
     }
-
 }

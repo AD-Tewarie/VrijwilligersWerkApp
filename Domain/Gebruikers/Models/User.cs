@@ -1,119 +1,97 @@
-﻿using Domain.Common.Data;
+﻿﻿using Domain.Common.Data;
 using Domain.Common.Exceptions;
-using Domain.Gebruikers.Services.WachtwoordStrategy.Data;
+using Domain.Gebruikers.ValueObjects;
 using Domain.Gebruikers.Services.WachtwoordStrategy.Interfaces;
+using Domain.Gebruikers.Services.WachtwoordStrategy.Data;
 
-namespace Domain.Gebruikers.Models
+namespace Domain.Gebruikers.Models;
+
+public class User
 {
-    public class User
+    private User(int userId, string naam, string achterNaam, EmailAdres email, WachtwoordData wachtwoordData)
     {
-        private readonly IWachtwoordStrategy wachtwoordStrategy;
-        private WachtwoordData WachtwoordData { get; set; }
+        ValideerNaam(naam);
+        ValideerAchterNaam(achterNaam);
 
-        public int UserId { get; private set; }
-        public string Naam { get; private set; }
-        public string AchterNaam { get; private set; }
-        public string Email { get; private set; }
-        public string PasswordHash => WachtwoordData.Hash;
-        public string Salt => WachtwoordData.Salt;
+        UserId = userId;
+        Naam = naam;
+        AchterNaam = achterNaam;
+        Email = email;
+        this.wachtwoordData = wachtwoordData;
+    }
 
-        private User(
-            string naam,
-            string achterNaam,
-            string email,
-            IWachtwoordStrategy wachtwoordStrategy)
-        {
-            this.wachtwoordStrategy = wachtwoordStrategy;
-            WijzigDetails(naam, achterNaam, email);
-        }
+    public int UserId { get; }
+    public string Naam { get; private set; }
+    public string AchterNaam { get; private set; }
+    public EmailAdres Email { get; private set; }
+    
+    private readonly WachtwoordData wachtwoordData;
+    public string PasswordHash => wachtwoordData.Hash;
+    public string Salt => wachtwoordData.Salt;
 
-        public static User MaakNieuw(
-            string naam,
-            string achterNaam,
-            string email,
-            string wachtwoord,
-            IWachtwoordStrategy wachtwoordStrategy)
-        {
-            var user = new User(naam, achterNaam, email, wachtwoordStrategy);
-            user.SetWachtwoord(wachtwoord);
-            return user;
-        }
+    public static User MaakNieuw(string naam, string achterNaam, string email, string hash, string salt)
+    {
+        return new User(0, naam, achterNaam, new EmailAdres(email), new WachtwoordData(hash, salt));
+    }
 
-        public static User LaadVanuitData(
-            UserData data,
-            IWachtwoordStrategy wachtwoordStrategy)
-        {
-            var user = new User(data.Naam, data.AchterNaam, data.Email, wachtwoordStrategy);
-            user.WachtwoordData = new WachtwoordData(data.PasswordHash, data.Salt);
-            user.UserId = data.UserId;
-            return user;
-        }
+    public static User LaadVanuitData(UserData data)
+    {
+        var wachtwoordData = new WachtwoordData(data.PasswordHash, data.Salt);
+        return new User(
+            data.UserId,
+            data.Naam,
+            data.AchterNaam,
+            new EmailAdres(data.Email),
+            wachtwoordData
+        );
+    }
 
-        public UserData NaarData()
-        {
-            return new UserData(
-                UserId,
-                Naam,
-                AchterNaam,
-                Email,
-                PasswordHash,
-                Salt
-            );
-        }
+    public bool ValideerWachtwoord(string wachtwoord, IWachtwoordStrategy wachtwoordStrategy)
+    {
+        return wachtwoordStrategy.Valideer(wachtwoord, wachtwoordData);
+    }
 
-        public void WijzigDetails(string naam, string achterNaam, string email)
-        {
-            ValideerGebruiker(naam, achterNaam, email);
+    public WachtwoordData GetWachtwoordData()
+    {
+        return wachtwoordData;
+    }
 
-            Naam = naam;
-            AchterNaam = achterNaam;
-            Email = email;
-        }
+    public void WijzigEmail(string nieuweEmail)
+    {
+        Email = new EmailAdres(nieuweEmail);
+    }
 
-        private static void ValideerGebruiker(string naam, string achterNaam, string email)
-        {
-            var fouten = new List<string>();
+    private static void ValideerNaam(string naam)
+    {
+        var fouten = new Dictionary<string, ICollection<string>>();
 
-            if (string.IsNullOrWhiteSpace(naam))
-                fouten.Add("Naam is verplicht.");
+        if (string.IsNullOrWhiteSpace(naam))
+            fouten.Add("Naam", new[] { "Naam is verplicht." });
+        else if (naam.Length < 2)
+            fouten.Add("Naam", new[] { "Naam moet minimaal 2 karakters lang zijn." });
+        else if (naam.Length > 50)
+            fouten.Add("Naam", new[] { "Naam mag maximaal 50 karakters lang zijn." });
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(naam, "^[a-zA-Z ]+$"))
+            fouten.Add("Naam", new[] { "Naam mag alleen letters en spaties bevatten." });
 
-            if (string.IsNullOrWhiteSpace(achterNaam))
-                fouten.Add("Achternaam is verplicht.");
+        if (fouten.Any())
+            throw new DomainValidationException("Validatie fouten opgetreden", fouten);
+    }
 
-            if (string.IsNullOrWhiteSpace(email))
-                fouten.Add("Email is verplicht.");
+    private static void ValideerAchterNaam(string achterNaam)
+    {
+        var fouten = new Dictionary<string, ICollection<string>>();
 
-            if (!IsGeldigEmailAdres(email))
-                fouten.Add("Email is niet geldig.");
+        if (string.IsNullOrWhiteSpace(achterNaam))
+            fouten.Add("AchterNaam", new[] { "Achternaam is verplicht." });
+        else if (achterNaam.Length < 2)
+            fouten.Add("AchterNaam", new[] { "Achternaam moet minimaal 2 karakters lang zijn." });
+        else if (achterNaam.Length > 50)
+            fouten.Add("AchterNaam", new[] { "Achternaam mag maximaal 50 karakters lang zijn." });
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(achterNaam, "^[a-zA-Z ]+$"))
+            fouten.Add("AchterNaam", new[] { "Achternaam mag alleen letters en spaties bevatten." });
 
-            if (fouten.Any())
-                throw new DomainValidationException("Validatie fouten opgetreden", fouten);
-        }
-
-        private static bool IsGeldigEmailAdres(string email)
-        {
-            try
-            {
-                var addr = new System.Net.Mail.MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private void SetWachtwoord(string wachtwoord)
-        {
-            if (string.IsNullOrWhiteSpace(wachtwoord))
-                throw new ArgumentException("Wachtwoord mag niet leeg zijn.");
-
-            WachtwoordData = wachtwoordStrategy.Hash(wachtwoord);
-        }
-
-        public bool ValideerWachtwoord(string wachtwoord)
-        {
-            return wachtwoordStrategy.Valideer(wachtwoord, WachtwoordData);
-        }
+        if (fouten.Any())
+            throw new DomainValidationException("Validatie fouten opgetreden", fouten);
     }
 }

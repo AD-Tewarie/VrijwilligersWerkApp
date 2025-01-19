@@ -1,144 +1,91 @@
-﻿using Domain.Common.Interfaces.Repository;
+﻿﻿﻿﻿﻿﻿using Domain.GebruikersTest.Models;
 using Domain.GebruikersTest.Interfaces;
-using Domain.Vrijwilligerswerk_Test.Models;
-using Domain.Vrijwilligerswerk_Test.PresentatieStrategy;
-using Domain.Vrijwilligerswerk_Test.WerkScore;
-using Domain.Werk.Models;
+using Domain.GebruikersTest.Services;
+using Domain.Common.Interfaces.Repository;
+using System.Collections.Generic;
 
-namespace Domain.Vrijwilligerswerk_Test
+namespace Domain.GebruikersTest.Services
 {
     public class TestBeheer : ITestBeheer
     {
-        private readonly IWerkPresentatieService werkPresentatieService;
-        private readonly IWerkScoreService scoreService;
-        private readonly ICategorieService categorieService;
-        private readonly ITestVraagService testVraagService;
         private readonly IGebruikersTestRepository repository;
+        private readonly IScoreStrategy scoreStrategy;
+        private readonly ITestSessieBeheer sessieBeheer;
 
         public TestBeheer(
-            IWerkPresentatieService werkPresentatieService,
-            IWerkScoreService scoreService,
-            ICategorieService categorieService,
-            ITestVraagService testVraagService,
-            IGebruikersTestRepository repository)
+            IGebruikersTestRepository repository,
+            IScoreStrategy scoreStrategy,
+            ITestSessieBeheer sessieBeheer)
         {
-            this.werkPresentatieService = werkPresentatieService ?? throw new ArgumentNullException(nameof(werkPresentatieService));
-            this.scoreService = scoreService ?? throw new ArgumentNullException(nameof(scoreService));
-            this.categorieService = categorieService ?? throw new ArgumentNullException(nameof(categorieService));
-            this.testVraagService = testVraagService ?? throw new ArgumentNullException(nameof(testVraagService));
-            this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            this.repository = repository;
+            this.scoreStrategy = scoreStrategy;
+            this.sessieBeheer = sessieBeheer;
         }
 
-        public Dictionary<Categorie, int> BerekenTestScores(
-            Dictionary<int, int> affiniteiten,
-            Dictionary<int, int> antwoorden)
+        public TestSessie StartTest(int gebruikerId)
         {
-            ValideerTestInput(affiniteiten, antwoorden);
-            var scores = new Dictionary<Categorie, int>();
-
-            foreach (var categorieId in affiniteiten.Keys)
+            // Verwijder bestaande sessie als die er is
+            try
             {
-                var categorie = categorieService.GetCategorieOpId(categorieId);
-                if (categorie == null) continue;
-
-                var categorieScore = BerekenCategorieScore(categorie, affiniteiten[categorieId], antwoorden);
-                scores[categorie] = categorieScore;
+                var bestaandeSessie = sessieBeheer.HaalOp(gebruikerId);
+                if (bestaandeSessie != null)
+                {
+                    sessieBeheer.Verwijder(gebruikerId);
+                }
             }
+            catch { /* Negeer fouten als er geen sessie bestaat */ }
 
-            return scores;
+            // Start een nieuwe sessie
+            var nieuweSessie = TestSessie.Start(gebruikerId);
+            sessieBeheer.Opslaan(gebruikerId, nieuweSessie);
+            return nieuweSessie;
         }
 
-        public List<VrijwilligersWerk> ZoekGeschiktWerk(
-            Dictionary<int, int> affiniteiten,
-            Dictionary<int, int> antwoorden,
-            List<VrijwilligersWerk> beschikbaarWerk,
-            string presentatieType)
+        public void BeantwoordVraag(int gebruikerId, int vraagId, int antwoord)
         {
-            ValideerZoekParameters(affiniteiten, antwoorden, beschikbaarWerk, presentatieType);
+            var sessie = sessieBeheer.HaalOp(gebruikerId);
+            sessie.VoegAntwoordToe(vraagId, antwoord);
+            sessieBeheer.Opslaan(gebruikerId, sessie);
+        }
 
-            var scores = BerekenTestScores(affiniteiten, antwoorden);
-            var werkMetScores = BerekenWerkScores(beschikbaarWerk, scores);
+        public void ZetAffiniteit(int gebruikerId, int categorieId, int score)
+        {
+            var sessie = sessieBeheer.HaalOp(gebruikerId);
+            sessie.ZetAffiniteit(categorieId, score);
+            sessieBeheer.Opslaan(gebruikerId, sessie);
+        }
 
-            return FilterWerkOpPresentatieType(werkMetScores, presentatieType)
-                .Select(w => w.Werk)
-                .ToList();
+        public Dictionary<Categorie, int> RondTestAf(int gebruikerId)
+        {
+            var sessie = sessieBeheer.HaalOp(gebruikerId);
+            sessie.RondAf();
+
+            var categorieën = repository.HaalAlleCategorieënOp();
+            var vragen = repository.HaalAlleTestVragenOp();
+
+            var scores = scoreStrategy.BerekenScores(
+                new Dictionary<int, int>(sessie.Affiniteiten),
+                new Dictionary<int, int>(sessie.Antwoorden),
+                vragen.ToDictionary(v => v.Id),
+                categorieën.ToDictionary(c => c.Id));
+
+            sessieBeheer.Verwijder(gebruikerId);
+            return scores;
         }
 
         public List<Categorie> HaalAlleCategorieënOp()
         {
-            return categorieService.HaalAlleCategorieënOp();
+            return repository.HaalAlleCategorieënOp();
         }
 
         public List<TestVraag> HaalAlleTestVragenOp()
         {
-            return testVraagService.HaalAlleTestVragenOp();
+            return repository.HaalAlleTestVragenOp();
         }
 
         public Categorie GetCategorieOpId(int id)
         {
-            ValideerCategorieId(id);
-            return categorieService.GetCategorieOpId(id);
-        }
-
-        private int BerekenCategorieScore(Categorie categorie, int affiniteit, Dictionary<int, int> antwoorden)
-        {
-            var vragenVoorCategorie = testVraagService.HaalAlleTestVragenOp()
-                .Where(v => v.CategorieId == categorie.Id);
-
-            return vragenVoorCategorie.Sum(vraag =>
-                antwoorden.ContainsKey(vraag.Id) ? antwoorden[vraag.Id] * affiniteit : 0);
-        }
-
-        private List<WerkMetScore> BerekenWerkScores(
-            List<VrijwilligersWerk> werkLijst,
-            Dictionary<Categorie, int> scores)
-        {
-            return werkLijst.Select(werk =>
-            {
-                var werkScore = scoreService.BerekenWerkScore(werk, scores);
-                return new WerkMetScore(werk, werkScore);
-            }).ToList();
-        }
-
-        private List<WerkMetScore> FilterWerkOpPresentatieType(
-            List<WerkMetScore> werkMetScores,
-            string presentatieType)
-        {
-            return werkPresentatieService.FilterWerkOpPresentatieType(werkMetScores, presentatieType);
-        }
-
-        private void ValideerTestInput(
-            Dictionary<int, int> affiniteiten,
-            Dictionary<int, int> antwoorden)
-        {
-            if (affiniteiten == null || !affiniteiten.Any())
-                throw new ArgumentException("Affiniteiten mogen niet leeg zijn");
-
-            if (antwoorden == null || !antwoorden.Any())
-                throw new ArgumentException("Antwoorden mogen niet leeg zijn");
-        }
-
-        private void ValideerCategorieId(int id)
-        {
-            if (id <= 0)
-                throw new ArgumentException("Categorie ID moet groter zijn dan 0.");
-        }
-
-        private void ValideerZoekParameters(
-            Dictionary<int, int> affiniteiten,
-            Dictionary<int, int> antwoorden,
-            List<VrijwilligersWerk> beschikbaarWerk,
-            string presentatieType)
-        {
-            ValideerTestInput(affiniteiten, antwoorden);
-
-            if (beschikbaarWerk == null || !beschikbaarWerk.Any())
-                throw new ArgumentException("Beschikbaar werk mag niet leeg zijn");
-
-            if (string.IsNullOrWhiteSpace(presentatieType))
-                throw new ArgumentException("Presentatie type mag niet leeg zijn");
+            return repository.GetCategorieOnId(id);
         }
     }
-
 }
-

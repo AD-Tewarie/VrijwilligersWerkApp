@@ -1,33 +1,42 @@
-using Application.Interfaces;
-using Application.ViewModels;
+using Application.Werk.Interfaces;
+using Application.Werk.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-
 
 namespace VrijwilligersWerkApp.Pages.RegistreerWerk
 {
     public class VrijwilligersWerkOverzichtModel : PageModel
     {
-        private readonly IVrijwilligersWerkService werkService;
+        private readonly IWerkBeheerService werkBeheerService;
+        private readonly IWerkRegistratieBeheerService werkRegistratieBeheerService;
         private readonly ILogger<VrijwilligersWerkOverzichtModel> logger;
 
-        public List<VrijwilligersWerkViewModel> WerkAanbiedingen { get; set; }
+        public List<WerkAanbiedingOverzichtViewModel> WerkAanbiedingen { get; set; }
         public string FeedbackMessage { get; set; }
         public string SuccesMessage { get; set; }
 
         public VrijwilligersWerkOverzichtModel(
-            IVrijwilligersWerkService werkService,
+            IWerkBeheerService werkBeheerService,
+            IWerkRegistratieBeheerService werkRegistratieBeheerService,
             ILogger<VrijwilligersWerkOverzichtModel> logger)
         {
-            this.werkService = werkService;
-            this.logger = logger;
+            this.werkBeheerService = werkBeheerService ?? throw new ArgumentNullException(nameof(werkBeheerService));
+            this.werkRegistratieBeheerService = werkRegistratieBeheerService ?? throw new ArgumentNullException(nameof(werkRegistratieBeheerService));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public IActionResult OnGet()
         {
             try
             {
-                WerkAanbiedingen = werkService.HaalAlleWerkenOp();
+                var userId = HttpContext.Session.GetInt32("UserId");
+                if (!userId.HasValue)
+                {
+                    TempData["ErrorMessage"] = "Je moet eerst inloggen.";
+                    return RedirectToPage("/Login/LoginGebruiker");
+                }
+
+                WerkAanbiedingen = werkBeheerService.HaalBeschikbareWerkAanbiedingenOp();
 
                 if (TempData["SuccesMessage"] != null)
                 {
@@ -59,13 +68,20 @@ namespace VrijwilligersWerkApp.Pages.RegistreerWerk
                     return RedirectToPage("/Login/LoginGebruiker");
                 }
 
-                if (werkService.RegistreerVoorWerk(id, userId.Value))
+                if (id <= 0)
                 {
-                    TempData["SuccesMessage"] = "Je bent succesvol geregistreerd voor dit vrijwilligerswerk!";
+                    TempData["ErrorMessage"] = "Ongeldig werk ID.";
+                    return RedirectToPage();
+                }
+
+                var result = werkRegistratieBeheerService.RegistreerVoorWerk(userId.Value, id);
+                if (result.IsSuccesvol)
+                {
+                    TempData["SuccesMessage"] = result.Melding ?? "Succesvol geregistreerd voor het werk.";
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Registratie mislukt. Mogelijk is het werk vol of ben je al geregistreerd.";
+                    TempData["ErrorMessage"] = result.Melding ?? "Er is een fout opgetreden bij de registratie.";
                 }
 
                 return RedirectToPage();

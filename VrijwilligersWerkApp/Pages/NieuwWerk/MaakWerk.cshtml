@@ -1,60 +1,68 @@
 ﻿@page
 @model VrijwilligersWerkApp.Pages.NieuwWerk.MaakWerkModel
-@{
-    ViewData["Title"] = "Nieuw Vrijwilligerswerk Toevoegen";
-}
+@using Application.Werk.ViewModels
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h2 class="card-title text-center">Nieuw Vrijwilligerswerk</h2>
+<div class="container mt-4">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+    @if (!ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <div asp-validation-summary="All" class="text-danger"></div>
+        </div>
+    }
 
-                    @if (!string.IsNullOrEmpty(TempData["ErrorMessage"]?.ToString()))
-                    {
-                        <div class="alert alert-danger">
-                            @TempData["ErrorMessage"]
-                        </div>
-                    }
-
-                    <form method="post" asp-page-handler="CreateWork">
-                        <div class="mb-3">
-                            <label asp-for="Titel" class="form-label">Titel</label>
-                            <input asp-for="Titel" class="form-control" />
-                            <span asp-validation-for="Titel" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="Omschrijving" class="form-label">Omschrijving</label>
-                            <textarea asp-for="Omschrijving" class="form-control"></textarea>
-                            <span asp-validation-for="Omschrijving" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="MaxCapaciteit" class="form-label">Maximale Capaciteit</label>
-                            <input asp-for="MaxCapaciteit" class="form-control" type="number" />
-                            <span asp-validation-for="MaxCapaciteit" class="text-danger"></span>
-                        </div>
-
-                        <div class="mb-3">
-                            <label asp-for="CategorieId" class="form-label">Categorie</label>
-                            <select asp-for="CategorieId" asp-items="Model.Categorieën" class="form-select"></select>
-                            <span asp-validation-for="CategorieId" class="text-danger"></span>
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Opslaan</button>
-                        </div>
-                    </form>
+    <div class="card">
+        <div class="card-header">
+            <h2>Nieuw Vrijwilligerswerk Toevoegen</h2>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="CreateWork">
+                <div class="form-group mb-3">
+                    <label asp-for="WerkModel.Titel" class="form-label">Titel</label>
+                    <input asp-for="WerkModel.Titel" class="form-control" />
+                    <span asp-validation-for="WerkModel.Titel" class="text-danger"></span>
                 </div>
-            </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="WerkModel.Omschrijving" class="form-label">Omschrijving</label>
+                    <textarea asp-for="WerkModel.Omschrijving" class="form-control" rows="4"></textarea>
+                    <span asp-validation-for="WerkModel.Omschrijving" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="WerkModel.MaxCapaciteit" class="form-label">Maximum Capaciteit</label>
+                    <input asp-for="WerkModel.MaxCapaciteit" class="form-control" type="number" min="1" max="100" />
+                    <span asp-validation-for="WerkModel.MaxCapaciteit" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="WerkModel.Locatie" class="form-label">Locatie</label>
+                    <input asp-for="WerkModel.Locatie" class="form-control" />
+                    <span asp-validation-for="WerkModel.Locatie" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="WerkModel.CategorieId" class="form-label">Categorie</label>
+                    <select asp-for="WerkModel.CategorieId" asp-items="Model.Categorieën" class="form-select"></select>
+                    <span asp-validation-for="WerkModel.CategorieId" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-primary">Toevoegen</button>
+                    <a asp-page="/RegistreerWerk/VrijwilligersWerkOverzicht" class="btn btn-secondary">Annuleren</a>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <partial name="_ValidationScriptsPartial" />
 }

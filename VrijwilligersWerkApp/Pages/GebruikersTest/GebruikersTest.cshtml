@@ -1,65 +1,130 @@
-﻿@page
+@page
 @model VrijwilligersWerkApp.Pages.GebruikersTest.GebruikersTestModel
+@using Application.GebruikersTest.ViewModels
 @{
     ViewData["Title"] = "Gebruikers Test";
 }
 
-<div class="container mt-5">
+<div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-body">
-                    <h1 class="card-title text-center mb-4">Gebruikers Test</h1>
+                    <h2 class="card-title text-center mb-4">Vrijwilligers Werk Test</h2>
 
-                    @if (ViewData["HasPreviousResults"] != null)
+                    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
+                    {
+                        <div class="alert alert-warning mb-4">
+                            @Model.FeedbackMessage
+                        </div>
+                    }
+
+                    @if (Model.HeeftBestaandeResultaten)
                     {
                         <div class="text-center mb-4">
-                            <p class="lead">Je hebt de test al voltooid. Wil je de test opnieuw maken?</p>
-                            <form method="post" asp-page-handler="Reset">
-                                <button type="submit" class="btn btn-warning">Test Opnieuw Starten</button>
+                            <p class="lead">Je hebt al eerdere testresultaten. Wat wil je doen?</p>
+                            <div class="d-grid gap-2">
+                                <form method="post" asp-page-handler="BekijkResultaten" class="mb-2">
+                                    <button type="submit" class="btn btn-primary w-100">Bekijk Vorige Resultaten</button>
+                                </form>
+                                <form method="post" asp-page-handler="NieuweTest">
+                                    <button type="submit" class="btn btn-warning w-100">Start Nieuwe Test</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.VraagModel == null || !Model.VraagModel.Vragen.Any())
+                    {
+                        <div class="text-center">
+                            <p class="lead">Klik op de knop hieronder om de test te starten.</p>
+                            <form method="post" asp-page-handler="NieuweTest">
+                                <button type="submit" class="btn btn-primary">Start Test</button>
                             </form>
                         </div>
                     }
-                    else if (Model.VraagModel != null)
+                    else if (Model.VraagModel != null && Model.VraagModel.Vragen.Any())
                     {
-                        <div class="progress mb-4">
-                            <div class="progress-bar" role="progressbar"
-                                 style="width: @Model.VraagModel.VoortgangPercentage%"
-                                 aria-valuenow="@Model.VraagModel.VoortgangPercentage"
-                                 aria-valuemin="0"
-                                 aria-valuemax="100">
-                                @Model.VraagModel.VoortgangPercentage%
+                        var huidigeVraag = Model.VraagModel.Vragen.Count > Model.VraagModel.HuidigeStap
+                            ? Model.VraagModel.Vragen.ElementAt(Model.VraagModel.HuidigeStap)
+                            : Model.VraagModel.Vragen.Last();
+                        var isAffiniteitsVraag = huidigeVraag.Id < 0;
+
+                        <form method="post" id="testForm">
+                            <input type="hidden" name="vraagId" value="@huidigeVraag.Id" />
+
+                            <div class="progress mb-4">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: @((huidigeVraag.VraagNummer / (float)huidigeVraag.TotaalVragen * 100))%"
+                                     aria-valuenow="@huidigeVraag.VraagNummer" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="@huidigeVraag.TotaalVragen">
+                                    @if (isAffiniteitsVraag)
+                                    {
+                                        <text>Affiniteit @huidigeVraag.VraagNummer van @huidigeVraag.TotaalVragen</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Vraag @huidigeVraag.VraagNummer van @huidigeVraag.TotaalVragen</text>
+                                    }
+                                </div>
                             </div>
-                        </div>
 
-                        <h2 class="h4 mb-4">@Model.VraagModel.VraagTekst</h2>
+                            <div class="mb-4">
+                                <h4 class="mb-3">@huidigeVraag.Tekst</h4>
+                                @if (!isAffiniteitsVraag)
+                                {
+                                    <p class="text-muted">Categorie: @huidigeVraag.CategorieName</p>
+                                }
 
-                        <form method="post" asp-page-handler="Antwoord" class="needs-validation" novalidate>
-                            <div class="form-group mb-4">
-                                <div class="btn-group d-flex" role="group">
+                                <div class="btn-group-vertical w-100" role="group">
                                     @for (int i = 1; i <= 5; i++)
                                     {
-                                        <input type="radio" class="btn-check" name="antwoord"
-                                               id="antwoord@(i)" value="@i" required>
-                                        <label class="btn btn-outline-primary" for="antwoord@(i)">
-                                            @GetAntwoordLabel(i)
+                                        <label class="btn btn-outline-primary mb-2 @(huidigeVraag.GekozenAntwoord == i ? "active" : "")">
+                                            <input type="radio" name="antwoord" value="@i" 
+                                                   @(huidigeVraag.GekozenAntwoord == i ? "checked" : "") 
+                                                   class="btn-check" required>
+                                            @switch (i)
+                                            {
+                                                case 5:
+                                                    <text>Heel belangrijk</text>
+                                                    break;
+                                                case 4:
+                                                    <text>Belangrijk</text>
+                                                    break;
+                                                case 3:
+                                                    <text>Neutraal</text>
+                                                    break;
+                                                case 2:
+                                                    <text>Niet zo belangrijk</text>
+                                                    break;
+                                                case 1:
+                                                    <text>Helemaal niet belangrijk</text>
+                                                    break;
+                                            }
                                         </label>
                                     }
                                 </div>
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">
-                                    Volgende
+                                <button type="submit" class="btn btn-primary" id="submitButton">
+                                    @if (isAffiniteitsVraag)
+                                    {
+                                        @(huidigeVraag.VraagNummer == huidigeVraag.TotaalVragen ? "Start Test" : "Volgende")
+                                    }
+                                    else
+                                    {
+                                        @(huidigeVraag.VraagNummer == huidigeVraag.TotaalVragen ? "Test Afronden" : "Volgende")
+                                    }
                                 </button>
                             </div>
                         </form>
                     }
-
-                    @if (!string.IsNullOrEmpty(Model.FeedbackMessage))
+                    else
                     {
-                        <div class="alert alert-danger mt-3">
-                            @Model.FeedbackMessage
+                        <div class="text-center">
+                            <p class="lead">Er is een fout opgetreden bij het laden van de test.</p>
+                            <a asp-page="Index" class="btn btn-primary">Terug naar Home</a>
                         </div>
                     }
                 </div>
@@ -68,17 +133,31 @@
     </div>
 </div>
 
-@functions {
-    private string GetAntwoordLabel(int value)
-    {
-        return value switch
-        {
-            1 => "Helemaal oneens",
-            2 => "Oneens",
-            3 => "Neutraal",
-            4 => "Eens",
-            5 => "Helemaal eens",
-            _ => string.Empty
-        };
-    }
+@section Scripts {
+    <script>
+        // Automatisch selecteren van radio button bij klikken op label
+        document.querySelectorAll('.btn-group-vertical label').forEach(label => {
+            label.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    document.querySelectorAll('.btn-group-vertical label').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Prevent double submission
+        document.getElementById('testForm')?.addEventListener('submit', function(e) {
+            const submitButton = document.getElementById('submitButton');
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+        });
+
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
 }

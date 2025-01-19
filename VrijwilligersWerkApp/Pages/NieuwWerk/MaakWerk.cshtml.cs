@@ -1,38 +1,38 @@
+using Application.GebruikersTest.Interfaces;
+using Application.Werk.Interfaces;
+using Application.Werk.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.ComponentModel.DataAnnotations;
-using Domain.Vrijwilligerswerk_Test;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Infrastructure;
-using Domain.Werk.Interfaces;
-using Domain.GebruikersTest.Interfaces;
-using Domain.Werk.Models;
 
 namespace VrijwilligersWerkApp.Pages.NieuwWerk
 {
     public class MaakWerkModel : PageModel
     {
-        private readonly IVrijwilligersWerkBeheer werkBeheer;
-        private readonly ITestBeheer testBeheer;
+        private readonly IWerkBeheerService werkBeheerService;
+        private readonly ITestCategorieService testCategorieService;
+        private readonly ILogger<MaakWerkModel> logger;
 
         [BindProperty]
-        public string Titel { get; set; }
-
-        [BindProperty]
-        public string Omschrijving { get; set; }
-
-        [BindProperty]
-        public int MaxCapaciteit { get; set; }
-
-        [BindProperty]
-        public int CategorieId { get; set; }
-
-        public List<SelectListItem> Categorieën { get; private set; }
-
-        public MaakWerkModel(IVrijwilligersWerkBeheer werkBeheer, ITestBeheer testBeheer)
+        public WerkAanmaakViewModel WerkModel { get; set; } = new()
         {
-            this.werkBeheer = werkBeheer;
-            this.testBeheer = testBeheer;
+            Titel = string.Empty,
+            Omschrijving = string.Empty,
+            Locatie = string.Empty,
+            MaxCapaciteit = 0,
+            CategorieId = 0
+        };
+
+        public List<SelectListItem> Categorieën { get; private set; } = new();
+
+        public MaakWerkModel(
+            IWerkBeheerService werkBeheerService,
+            ITestCategorieService testCategorieService,
+            ILogger<MaakWerkModel> logger)
+        {
+            this.werkBeheerService = werkBeheerService ?? throw new ArgumentNullException(nameof(werkBeheerService));
+            this.testCategorieService = testCategorieService ?? throw new ArgumentNullException(nameof(testCategorieService));
+            this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public IActionResult OnGet()
@@ -51,16 +51,13 @@ namespace VrijwilligersWerkApp.Pages.NieuwWerk
 
             try
             {
-                var werk = VrijwilligersWerk.MaakNieuw(Titel, Omschrijving, MaxCapaciteit);
-                werkBeheer.VoegWerkToe(werk, CategorieId);
-
+                werkBeheerService.VoegWerkToe(WerkModel);
                 TempData["SuccessMessage"] = "Vrijwilligerswerk succesvol toegevoegd!";
-
-                // Use strong redirect to prevent form resubmission
-                return new RedirectToPageResult("/RegistreerWerk/VrijwilligersWerkOverzicht");
+                return RedirectToPage("/RegistreerWerk/VrijwilligersWerkOverzicht");
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Fout bij toevoegen vrijwilligerswerk");
                 TempData["ErrorMessage"] = $"Er is een fout opgetreden: {ex.Message}";
                 LaadCategorieën();
                 return Page();
@@ -71,27 +68,26 @@ namespace VrijwilligersWerkApp.Pages.NieuwWerk
         {
             try
             {
-                Categorieën = testBeheer.HaalAlleCategorieënOp()
-                    .Select(c => new SelectListItem
-                    {
-                        Value = c.Id.ToString(),
-                        Text = c.Naam
-                    })
-                    .ToList();
+                var categories = testCategorieService.HaalAlleCategorieënOp();
+                Categorieën = categories.Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = c.Naam
+                }).ToList();
 
                 Categorieën.Insert(0, new SelectListItem
                 {
-                    Value = "",
+                    Value = "0",
                     Text = "-- Selecteer een categorie --",
                     Selected = true
                 });
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError(string.Empty, $"Fout bij het laden van categorieën: {ex.Message}");
+                logger.LogError(ex, "Fout bij laden categorieën");
+                ModelState.AddModelError(string.Empty, "Fout bij het laden van categorieën");
                 Categorieën = new List<SelectListItem>();
             }
         }
     }
 }
-

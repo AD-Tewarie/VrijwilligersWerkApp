@@ -10,6 +10,10 @@
             <div class="card shadow">
                 <div class="card-body">
                     <h2 class="card-title text-center">Registreren</h2>
+
+                    
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
                     <form method="post">
                         <div class="mb-3">
                             <label for="Naam" class="form-label">Naam</label>
@@ -23,8 +27,8 @@
                         </div>
                         <div class="mb-3">
                             <label for="Email" class="form-label">Email</label>
-                            <input id="Email" asp-for="Email" class="form-control" placeholder="Voer je email in" />
-                            <span asp-validation-for="Achternaam" class="text-danger"></span>
+                            <input id="Email" asp-for="Email" class="form-control" placeholder="Voer je email in" type="email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
                         <div class="mb-3">
                             <label for="Wachtwoord" class="form-label">Wachtwoord</label>
@@ -39,9 +43,14 @@
                     <div class="text-center">
                         <a asp-page="/Login/LoginGebruiker" class="btn btn-outline-secondary">Terug naar inloggen</a>
                     </div>
-                    <p class="text-danger text-center mt-3">@Model.FeedbackMessage</p>
+
+                    
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

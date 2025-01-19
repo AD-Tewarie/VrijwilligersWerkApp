@@ -1,4 +1,4 @@
-﻿using Domain.Common.Exceptions;
+﻿﻿using Domain.Common.Exceptions;
 using Domain.Gebruikers.Models;
 
 namespace Domain.Werk.Models
@@ -15,7 +15,6 @@ namespace Domain.Werk.Models
 
             VrijwilligersWerk = vrijwilligersWerk;
             User = user;
-
         }
 
         public static WerkRegistratie MaakNieuw(VrijwilligersWerk vrijwilligersWerk, User user)
@@ -32,17 +31,26 @@ namespace Domain.Werk.Models
 
         private static void ValideerRegistratie(VrijwilligersWerk vrijwilligersWerk, User user)
         {
-            var fouten = new List<string>();
+            var fouten = new Dictionary<string, ICollection<string>>();
 
             if (vrijwilligersWerk == null)
-                fouten.Add("Vrijwilligerswerk is verplicht.");
+            {
+                fouten["VrijwilligersWerk"] = new List<string> { "Vrijwilligerswerk is verplicht." };
+            }
+            else if (vrijwilligersWerk.AantalRegistraties >= vrijwilligersWerk.MaxCapaciteit)
+            {
+                fouten["VrijwilligersWerk"] = new List<string> { "Maximum capaciteit is bereikt." };
+            }
 
             if (user == null)
-                fouten.Add("Gebruiker is verplicht.");
+            {
+                fouten["User"] = new List<string> { "Gebruiker is verplicht." };
+            }
 
             if (fouten.Any())
+            {
                 throw new DomainValidationException("Validatie fouten opgetreden", fouten);
+            }
         }
-
     }
 }

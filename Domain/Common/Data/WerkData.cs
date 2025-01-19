@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Domain.Common.Data
+﻿namespace Domain.Common.Data
 {
     public class WerkData
     {
@@ -13,19 +7,22 @@ namespace Domain.Common.Data
         public string Omschrijving { get; set; }
         public int MaxCapaciteit { get; set; }
         public int AantalRegistraties { get; set; }
+        public string Locatie { get; set; }
 
         public WerkData(
             int werkId,
             string titel,
             string omschrijving,
             int maxCapaciteit,
-            int aantalRegistraties)
+            int aantalRegistraties,
+            string locatie)
         {
             WerkId = werkId;
             Titel = titel;
             Omschrijving = omschrijving;
             MaxCapaciteit = maxCapaciteit;
             AantalRegistraties = aantalRegistraties;
+            Locatie = locatie;
         }
     }
 }

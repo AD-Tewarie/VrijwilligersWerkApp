@@ -1,4 +1,4 @@
-﻿namespace Domain.Vrijwilligerswerk_Test.Models
+﻿namespace Domain.GebruikersTest.Models
 {
     public class TestResultaat
     {

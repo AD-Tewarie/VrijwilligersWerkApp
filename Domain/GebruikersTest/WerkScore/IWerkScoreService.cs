@@ -1,11 +1,11 @@
-﻿using Domain.Vrijwilligerswerk_Test.PresentatieStrategy;
-using Domain.Werk.Models;
+﻿using System.Collections.Generic;
+using Domain.GebruikersTest.Models;
+using VrijwilligersWerkModel = Domain.Werk.Models.VrijwilligersWerk;
 
-namespace Domain.Vrijwilligerswerk_Test.WerkScore
+namespace Domain.GebruikersTest.WerkScore
 {
     public interface IWerkScoreService
     {
-        List<WerkMetScore> BerekenScoresVoorWerkLijst(List<VrijwilligersWerk> werkLijst, Dictionary<Categorie, int> scores);
-        int BerekenWerkScore(VrijwilligersWerk werk, Dictionary<Categorie, int> scores);
+        (int score, int maximaleScore) BerekenWerkScore(VrijwilligersWerkModel werk, Dictionary<Categorie, int> scores);
     }
 }

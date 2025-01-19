@@ -1,4 +1,5 @@
-﻿@page
+@page
+@using Application.Werk.ViewModels
 @model VrijwilligersWerkOverzichtModel
 @{
     ViewData["Title"] = "Overzicht van Vrijwilligerswerk";
@@ -30,7 +31,7 @@
                 <tr>
                     <th scope="col">Titel</th>
                     <th scope="col">Beschrijving</th>
-                    <th scope="col">Categorieën</th>
+                    <th scope="col">Locatie</th>
                     <th scope="col">Bezetting</th>
                     <th scope="col">Acties</th>
                 </tr>
@@ -41,14 +42,14 @@
                     <tr>
                         <td>@werk.Titel</td>
                         <td>@werk.Omschrijving</td>
-                        <td>@werk.CategorieNamen</td>
-                        <td>@werk.HuidigeRegistraties / @werk.MaxCapaciteit</td>
+                        <td>@werk.Locatie</td>
+                        <td>@werk.AantalRegistraties / @werk.MaxCapaciteit</td>
                         <td>
                             <form method="post" asp-page-handler="Apply">
                                 <input type="hidden" name="id" value="@werk.WerkId" />
                                 <button type="submit"
                                         class="btn btn-primary btn-sm"
-                                @(werk.IsVol ? "disabled" : "")>
+                                        @(werk.IsVol ? "disabled" : "")>
                                     @(werk.IsVol ? "Vol" : "Registreer")
                                 </button>
                             </form>

@@ -1,95 +1,78 @@
 ﻿@page
 @model VrijwilligersWerkApp.Pages.MijnProfiel.GebruikersProfielModel
-@{
-    ViewData["Title"] = "Mijn Profiel";
-}
+@using Application.GebruikersProfiel.ViewModels
+@using Application.Werk.ViewModels
 
 <div class="container mt-4">
-    @if (!string.IsNullOrEmpty(Model.SuccesMessage))
+    @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @Model.SuccesMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
     }
 
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @Model.ErrorMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="card">
+        <div class="card-header">
+            <h2>Mijn Profiel</h2>
         </div>
-    }
-
-    <div class="row">
-        <!-- Gebruikersgegevens -->
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Mijn Gegevens</h5>
-                </div>
-                <div class="card-body">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Persoonlijke Gegevens</h3>
                     <dl class="row">
-                        <dt class="col-sm-4">Naam</dt>
-                        <dd class="col-sm-8">@Model.HuidigeGebruiker.Naam @Model.HuidigeGebruiker.AchterNaam</dd>
+                        <dt class="col-sm-4">Naam:</dt>
+                        <dd class="col-sm-8">@Model.ProfielData.Naam @Model.ProfielData.AchterNaam</dd>
 
-                        <dt class="col-sm-4">Email</dt>
-                        <dd class="col-sm-8">@Model.HuidigeGebruiker.Email</dd>
+                        <dt class="col-sm-4">Email:</dt>
+                        <dd class="col-sm-8">@Model.ProfielData.Email</dd>
                     </dl>
                 </div>
             </div>
-        </div>
 
-        <!-- Registraties -->
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Mijn Registraties</h5>
-                </div>
-                <div class="card-body">
-                    @if (Model.Registraties != null && Model.Registraties.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
+            <div class="mt-4">
+                <h3>Mijn Registraties</h3>
+                @if (Model.ProfielData.Registraties.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Werk</th>
+                                    <th>Beschrijving</th>
+                                    <th>Status</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var registratie in Model.ProfielData.Registraties)
+                                {
                                     <tr>
-                                        <th>Vrijwilligerswerk</th>
-                                        <th>Beschrijving</th>
-                                        <th>Bezetting</th>
-                                        <th>Acties</th>
+                                        <td>@registratie.WerkTitel</td>
+                                        <td>@registratie.WerkLocatie</td>
+                                        <td>
+                                            <span class="badge bg-success">
+                                                Actief
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <form method="post" asp-page-handler="AnnuleerRegistratie" asp-route-registratieId="@registratie.RegistratieId" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Weet je zeker dat je deze registratie wilt annuleren?')">
+                                                    Annuleren
+                                                </button>
+                                            </form>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var registratie in Model.Registraties)
-                                    {
-                                        <tr>
-                                            <td>@registratie.VrijwilligersWerk.Titel</td>
-                                            <td>@registratie.VrijwilligersWerk.Omschrijving</td>
-                                            <td>
-                                                @registratie.VrijwilligersWerk.AantalRegistraties / @registratie.VrijwilligersWerk.MaxCapaciteit
-                                            </td>
-                                            <td>
-                                                <form method="post" asp-page-handler="CancelRegistration"
-                                                      onsubmit="return confirm('Weet je zeker dat je deze registratie wilt annuleren?');">
-                                                    <input type="hidden" name="registratieId" value="@registratie.RegistratieId" />
-                                                    <button type="submit" class="btn btn-danger btn-sm">
-                                                        Annuleren
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-info">
-                            Je hebt je nog niet geregistreerd voor vrijwilligerswerk.
-                        </div>
-                    }
-                </div>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p>Je hebt nog geen registraties.</p>
+                }
             </div>
         </div>
     </div>

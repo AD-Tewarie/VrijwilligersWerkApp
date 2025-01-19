@@ -1,40 +1,53 @@
-﻿using MySql.Data.MySqlClient;
-using System;
-using System.Collections.Generic;
+﻿﻿using Domain.Common.Interfaces;
+using Infrastructure.Database;
+using MySqlConnector;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DomainCommand = Domain.Common.Interfaces.IDbCommand;
 
-namespace Infrastructure.Repos_DB
+namespace Infrastructure.Repos_DB;
+
+public class DatabaseService : IDatabaseService
 {
-    public class DatabaseService
+    private readonly string connectionString;
+
+    public DatabaseService(string connectionString)
     {
-        private readonly string connString;
-        private MySqlConnection connection;
+        this.connectionString = connectionString;
+    }
 
-        public DatabaseService(DBSettings settings)
-        {
-            connString = settings.DefaultConnection;
-        }
+    public IDbConnection GetConnection()
+    {
+        return new MySqlConnection(connectionString);
+    }
 
-        public MySqlConnection GetConnection()
-        {
-            if (connection == null || connection.State != ConnectionState.Open)
-            {
-                connection = new MySqlConnection(connString);
-                connection.Open();
-            }
-            return connection;
-        }
+    public DomainCommand CreateCommand(IDbConnection connection, string commandText)
+    {
+        var mysqlCommand = new MySqlCommand(commandText, connection as MySqlConnection);
+        return new DbCommandAdapter(mysqlCommand);
+    }
 
-        public void CloseConnection()
+    public void OpenConnection(IDbConnection connection)
+    {
+        if (connection?.State != ConnectionState.Open)
         {
-            if (connection != null)
-            {
-                connection.Close();
-                connection = null;
-            }
+            connection?.Open();
         }
+    }
+
+    public void CloseConnection(IDbConnection connection)
+    {
+        if (connection?.State != ConnectionState.Closed)
+        {
+            connection?.Close();
+        }
+    }
+
+    public IDbTransaction BeginTransaction(IDbConnection connection)
+    {
+        if (connection?.State != ConnectionState.Open)
+        {
+            throw new InvalidOperationException("Connection must be open before starting a transaction.");
+        }
+        return connection.BeginTransaction();
     }
 }

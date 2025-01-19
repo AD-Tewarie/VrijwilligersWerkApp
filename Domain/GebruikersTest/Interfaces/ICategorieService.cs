@@ -1,4 +1,4 @@
-﻿using Domain.Vrijwilligerswerk_Test;
+﻿using Domain.GebruikersTest.Models;
 
 namespace Domain.GebruikersTest.Interfaces
 {

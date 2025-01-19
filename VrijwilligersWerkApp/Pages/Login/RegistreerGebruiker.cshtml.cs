@@ -1,5 +1,5 @@
-using Domain;
-using Domain.Gebruikers.Interfaces;
+using Application.Authenticatie.Interfaces;
+using Domain.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
@@ -8,51 +8,61 @@ namespace VrijwilligersWerkApp.Pages.Login
 {
     public class RegistreerGebruikerModel : PageModel
     {
-        private readonly IUserBeheer userBeheer;
-
         [BindProperty]
-        [Required(ErrorMessage = "Naam is verplicht.")]
         public string Naam { get; set; }
 
         [BindProperty]
-        [Required(ErrorMessage = "Wachtwoord is verplicht.")]
         public string Wachtwoord { get; set; }
 
         [BindProperty]
-        [Required(ErrorMessage ="Email is verplicht")]
         public string Email { get; set; }
 
         [BindProperty]
-        [Required(ErrorMessage = "Achternaam is verplicht")]
         public string Achternaam { get; set; }
 
         public string FeedbackMessage { get; set; }
 
+        private readonly IAuthenticatieService authenticatieService;
+        private readonly ILogger<RegistreerGebruikerModel> logger;
 
-
-        public RegistreerGebruikerModel(IUserBeheer userBeheer)
+        public RegistreerGebruikerModel(
+            IAuthenticatieService authenticatieService,
+            ILogger<RegistreerGebruikerModel> logger)
         {
-            this.userBeheer = userBeheer;
+            this.authenticatieService = authenticatieService;
+            this.logger = logger;
         }
-
-
 
         public IActionResult OnPost()
         {
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (authenticatieService.BestaatEmail(Email))
                 {
-                    userBeheer.VoegGebruikerToe(Naam, Achternaam, Email, Wachtwoord); 
-                    FeedbackMessage = "Registratie succesvol!";
-                    return RedirectToPage("/Login/LoginGebruiker");
+                    ModelState.AddModelError("Email", "Dit emailadres is al in gebruik.");
+                    return Page();
                 }
-                catch (Exception ex)
-                {
-                    FeedbackMessage = $"Fout tijdens registratie: {ex.Message}";
-                }
+
+                authenticatieService.Registreer(Naam, Achternaam, Email, Wachtwoord);
+                return RedirectToPage("/Login/LoginGebruiker");
             }
-            return Page();
+            catch (DomainValidationException ex)
+            {
+                foreach (var error in ex.ValidatieFouten)
+                {
+                    foreach (var message in error.Value)
+                    {
+                        ModelState.AddModelError(error.Key, message);
+                    }
+                }
+                return Page();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Fout tijdens registratie voor gebruiker {Email}", Email);
+                ModelState.AddModelError(string.Empty, "Er is een fout opgetreden tijdens de registratie.");
+                return Page();
+            }
         }
     }
 }

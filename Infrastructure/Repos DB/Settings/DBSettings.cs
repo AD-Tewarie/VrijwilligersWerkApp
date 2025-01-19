@@ -1,17 +1,7 @@
-﻿using MySql.Data.MySqlClient;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Infrastructure.Repos_DB
+﻿namespace Infrastructure.Repos_DB.Settings
 {
     public class DBSettings
     {
-        public string DefaultConnection { get; set; }
-     
-
-
+        public string DefaultConnection { get; set; } = string.Empty;
     }
 }

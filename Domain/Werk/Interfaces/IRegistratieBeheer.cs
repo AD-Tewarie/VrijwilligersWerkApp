@@ -1,4 +1,4 @@
-﻿using Domain.Werk.Models;
+﻿﻿using Domain.Werk.Models;
 
 namespace Domain.Werk.Interfaces
 {
@@ -9,5 +9,6 @@ namespace Domain.Werk.Interfaces
         List<WerkRegistratie> HaalRegistratiesOp();
         WerkRegistratie HaalRegistratieOp(int registratieId);
         int HaalAantalRegistratiesOp(int werkId);
+        bool HeeftGebruikerRegistratie(int werkId, int gebruikerId);
     }
 }

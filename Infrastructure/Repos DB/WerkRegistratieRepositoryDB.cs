@@ -1,360 +1,231 @@
-﻿using Domain.Common.Data;
+﻿﻿using Domain.Common.Interfaces;
 using Domain.Common.Interfaces.Repository;
 using Domain.Werk.Models;
-using MySql.Data.MySqlClient;
+using Domain.Common.Exceptions;
+using MySqlConnector;
 
-namespace Infrastructure.Repos_DB
+namespace Infrastructure.Repos_DB;
+
+public class WerkRegistratieRepositoryDB : IWerkRegistratieRepository
 {
-    public class WerkRegistratieRepositoryDB : IWerkRegistratieRepository
+    private readonly IDatabaseService databaseService;
+    private readonly IVrijwilligersWerkRepository werkRepository;
+    private readonly IUserRepository userRepository;
+
+    public WerkRegistratieRepositoryDB(
+        IDatabaseService databaseService,
+        IVrijwilligersWerkRepository werkRepository,
+        IUserRepository userRepository)
     {
-        private readonly string connString;
-        private MySqlConnection connection = null;
-        private readonly IVrijwilligersWerkRepository werkRepository;
-        private readonly IUserRepository userRepository;
+        this.databaseService = databaseService;
+        this.werkRepository = werkRepository;
+        this.userRepository = userRepository;
+    }
 
-        public WerkRegistratieRepositoryDB(
-            DBSettings settings,
-            IVrijwilligersWerkRepository werkRepository,
-            IUserRepository userRepository)
+    public void AddWerkRegistratie(WerkRegistratie registratie)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+        using var transaction = databaseService.BeginTransaction(connection);
+
+        try
         {
-            connString = settings.DefaultConnection;
-            this.werkRepository = werkRepository;
-            this.userRepository = userRepository;
+            // Check if registration already exists
+            var checkCommand = databaseService.CreateCommand(connection, @"
+                SELECT COUNT(*) as count
+                FROM volenteer_work_user
+                WHERE volenteer_work_id = @werk_id
+                AND user_id = @user_id");
+
+            checkCommand.Transaction = transaction;
+            checkCommand.AddParameter("@werk_id", registratie.VrijwilligersWerk.WerkId);
+            checkCommand.AddParameter("@user_id", registratie.User.UserId);
+
+            using var reader = (MySqlDataReader)checkCommand.ExecuteReader();
+            if (reader.Read() && reader.GetInt32("count") > 0)
+            {
+                throw new DomainValidationException("Registratie",
+                    new Dictionary<string, ICollection<string>> {
+                        { "Registratie", new[] { "Je bent al geregistreerd voor dit werk." } }
+                    });
+            }
+            reader.Close();
+
+            // Add registration
+            var insertCommand = databaseService.CreateCommand(connection, @"
+                INSERT INTO volenteer_work_user (
+                    volenteer_work_id,
+                    user_id
+                ) VALUES (
+                    IF(@werk_id <= 0, 1, @werk_id),
+                    IF(@user_id <= 0, 1, @user_id)
+                )");
+
+            insertCommand.Transaction = transaction;
+            insertCommand.AddParameter("@werk_id", registratie.VrijwilligersWerk.WerkId);
+            insertCommand.AddParameter("@user_id", registratie.User.UserId);
+
+            insertCommand.ExecuteNonQuery();
+            transaction.Commit();
         }
-
-        private bool IsConnect(string connString)
+        catch (Exception ex)
         {
-            if (connection == null)
-            {
-                connection = new MySqlConnection(connString);
-                connection.Open();
-            }
-            return true;
-        }
-
-        public List<WerkRegistratie> GetWerkRegistraties()
-        {
-            var registraties = new List<WerkRegistratie>();
-
-            if (IsConnect(connString))
-            {
-                string query = "SELECT * FROM volenteer_work_user";
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    try
-                    {
-                        using (MySqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                var werk = werkRepository.GetWerkOnId(reader.GetInt32("volenteer_work_id"));
-                                var user = userRepository.GetUserOnId(reader.GetInt32("user_id"));
-
-                                if (werk != null && user != null)
-                                {
-                                    registraties.Add(WerkRegistratie.LaadVanuitDatabase(
-                                        reader.GetInt32("id"),
-                                        werk,
-                                        user
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                    catch (MySqlException ex)
-                    {
-                        File.AppendAllText("error.log", $"Fout bij ophalen registraties: {ex.Message}" + Environment.NewLine);
-                        throw new Exception("Kon werkregistraties niet ophalen", ex);
-                    }
-                    finally
-                    {
-                        if (connection != null)
-                        {
-                            connection.Close();
-                            connection = null;
-                        }
-                    }
-                }
-            }
-
-            return registraties;
-        }
-
-        public WerkRegistratie GetRegistratieOnId(int id)
-        {
-            if (!IsConnect(connString))
-                return null;
-
-            string query = "SELECT * FROM volenteer_work_user WHERE id = @id";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@id", id);
-
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            var werk = werkRepository.GetWerkOnId(reader.GetInt32("volenteer_work_id"));
-                            var user = userRepository.GetUserOnId(reader.GetInt32("user_id"));
-
-                            if (werk != null && user != null)
-                            {
-                                return WerkRegistratie.LaadVanuitDatabase(
-                                    id,
-                                    werk,
-                                    user
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij ophalen registratie {id}: {ex.Message}" + Environment.NewLine);
-                throw new Exception($"Kon werkregistratie {id} niet ophalen", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-
-            return null;
-        }
-
-        public WerkRegistratie GetRegistratieOnWerkId(int werkId)
-        {
-            if (!IsConnect(connString))
-                return null;
-
-            string query = "SELECT * FROM volenteer_work_user WHERE volenteer_work_id = @werkId";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@werkId", werkId);
-
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            var werk = werkRepository.GetWerkOnId(werkId);
-                            var user = userRepository.GetUserOnId(reader.GetInt32("user_id"));
-
-                            if (werk != null && user != null)
-                            {
-                                return WerkRegistratie.LaadVanuitDatabase(
-                                    reader.GetInt32("id"),
-                                    werk,
-                                    user
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij ophalen registratie voor werk {werkId}: {ex.Message}" + Environment.NewLine);
-                throw new Exception($"Kon werkregistratie voor werk {werkId} niet ophalen", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-
-            return null;
-        }
-
-        public void AddWerkRegistratie(WerkRegistratie registratie)
-        {
-            if (!IsConnect(connString))
-                return;
-
-            string query = @"INSERT INTO volenteer_work_user(user_id, volenteer_work_id)
-                        VALUES (@user_id, @werk_id)";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@user_id", registratie.User.UserId);
-                    cmd.Parameters.AddWithValue("@werk_id", registratie.VrijwilligersWerk.WerkId);
-
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij toevoegen registratie: {ex.Message}" + Environment.NewLine);
-                throw new Exception("Kon werkregistratie niet toevoegen", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-        }
-
-        public bool VerwijderWerkRegistratie(int registratieId)
-        {
-            if (!IsConnect(connString))
-                return false;
-
-            string query = "DELETE FROM volenteer_work_user WHERE id = @id";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@id", registratieId);
-                    int rowsAffected = cmd.ExecuteNonQuery();
-                    return rowsAffected > 0;
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij verwijderen registratie {registratieId}: {ex.Message}" + Environment.NewLine);
-                throw new Exception($"Kon werkregistratie {registratieId} niet verwijderen", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-        }
-
-        public int GetRegistratieCountForWerk(int werkId)
-        {
-            if (!IsConnect(connString))
-                return 0;
-
-            string query = "SELECT COUNT(*) FROM volenteer_work_user WHERE volenteer_work_id = @werkId";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@werkId", werkId);
-                    return Convert.ToInt32(cmd.ExecuteScalar());
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij ophalen registratie telling voor werk {werkId}: {ex.Message}" + Environment.NewLine);
-                throw new Exception($"Kon registratie telling niet ophalen voor werk {werkId}", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
-        }
-
-        public List<WerkRegistratie> GetRegistratiesForUser(int userId)
-        {
-            var registraties = new List<WerkRegistratie>();
-
-            if (IsConnect(connString))
-            {
-                string query = "SELECT * FROM volenteer_work_user WHERE user_id = @userId";
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    try
-                    {
-                        cmd.Parameters.AddWithValue("@userId", userId);
-
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                var werk = werkRepository.GetWerkOnId(reader.GetInt32("volenteer_work_id"));
-                                var user = userRepository.GetUserOnId(userId);
-
-                                if (werk != null && user != null)
-                                {
-                                    registraties.Add(WerkRegistratie.LaadVanuitDatabase(
-                                        reader.GetInt32("id"),
-                                        werk,
-                                        user
-                                    ));
-                                }
-                            }
-                        }
-                    }
-                    catch (MySqlException ex)
-                    {
-                        File.AppendAllText("error.log", $"Fout bij ophalen registraties voor gebruiker {userId}: {ex.Message}" + Environment.NewLine);
-                        throw new Exception($"Kon registraties voor gebruiker {userId} niet ophalen", ex);
-                    }
-                    finally
-                    {
-                        if (connection != null)
-                        {
-                            connection.Close();
-                            connection = null;
-                        }
-                    }
-                }
-            }
-
-            return registraties;
-        }
-
-        public bool BestaatRegistratie(int userId, int werkId)
-        {
-            if (!IsConnect(connString))
-                return false;
-
-            string query = "SELECT COUNT(*) FROM volenteer_work_user WHERE user_id = @userId AND volenteer_work_id = @werkId";
-
-            try
-            {
-                using (MySqlCommand cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@userId", userId);
-                    cmd.Parameters.AddWithValue("@werkId", werkId);
-
-                    int count = Convert.ToInt32(cmd.ExecuteScalar());
-                    return count > 0;
-                }
-            }
-            catch (MySqlException ex)
-            {
-                File.AppendAllText("error.log", $"Fout bij controleren registratie bestaan: {ex.Message}" + Environment.NewLine);
-                throw new Exception("Kon registratie bestaan niet controleren", ex);
-            }
-            finally
-            {
-                if (connection != null)
-                {
-                    connection.Close();
-                    connection = null;
-                }
-            }
+            transaction.Rollback();
+            if (ex is DomainValidationException)
+                throw;
+            throw new DomainValidationException("Registratie",
+                new Dictionary<string, ICollection<string>> {
+                    { "Database", new[] { ex.Message } }
+                });
         }
     }
 
-}
+    public bool VerwijderWerkRegistratie(int registratieId)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
 
+        var command = databaseService.CreateCommand(connection,
+            "DELETE FROM volenteer_work_user WHERE id = @id");
+        command.AddParameter("@id", registratieId);
+
+        return command.ExecuteNonQuery() > 0;
+    }
+
+    public List<WerkRegistratie> GetWerkRegistraties()
+    {
+        var registraties = new List<WerkRegistratie>();
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                id,
+                IF(volenteer_work_id <= 0, 1, volenteer_work_id) as volenteer_work_id,
+                IF(user_id <= 0, 1, user_id) as user_id
+            FROM volenteer_work_user");
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        while (reader.Read())
+        {
+            var registratieId = reader.GetInt32("id");
+            var werkId = reader.GetInt32("volenteer_work_id");
+            var userId = reader.GetInt32("user_id");
+
+            var werk = werkRepository.GetWerkOnId(werkId);
+            var user = userRepository.GetUserOnId(userId);
+
+            if (werk != null && user != null)
+            {
+                registraties.Add(WerkRegistratie.LaadVanuitDatabase(registratieId, werk, user));
+            }
+        }
+
+        return registraties;
+    }
+
+    public WerkRegistratie? GetRegistratieOnId(int registratieId)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                IF(volenteer_work_id <= 0, 1, volenteer_work_id) as volenteer_work_id,
+                IF(user_id <= 0, 1, user_id) as user_id
+            FROM volenteer_work_user
+            WHERE id = @id");
+        command.AddParameter("@id", registratieId);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
+        {
+            var werkId = reader.GetInt32("volenteer_work_id");
+            var userId = reader.GetInt32("user_id");
+
+            var werk = werkRepository.GetWerkOnId(werkId);
+            var user = userRepository.GetUserOnId(userId);
+
+            if (werk != null && user != null)
+            {
+                return WerkRegistratie.LaadVanuitDatabase(registratieId, werk, user);
+            }
+        }
+
+        return null;
+    }
+
+    public WerkRegistratie? GetRegistratieOnWerkId(int werkId)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT
+                id,
+                IF(user_id <= 0, 1, user_id) as user_id
+            FROM volenteer_work_user
+            WHERE volenteer_work_id = @werk_id
+            LIMIT 1");
+        command.AddParameter("@werk_id", werkId);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
+        {
+            var registratieId = reader.GetInt32("id");
+            var userId = reader.GetInt32("user_id");
+
+            var werk = werkRepository.GetWerkOnId(werkId);
+            var user = userRepository.GetUserOnId(userId);
+
+            if (werk != null && user != null)
+            {
+                return WerkRegistratie.LaadVanuitDatabase(registratieId, werk, user);
+            }
+        }
+
+        return null;
+    }
+
+    public bool HeeftGebruikerRegistratie(int werkId, int gebruikerId)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT COUNT(*) as count
+            FROM volenteer_work_user
+            WHERE volenteer_work_id = @werk_id
+            AND user_id = @user_id");
+        command.AddParameter("@werk_id", werkId);
+        command.AddParameter("@user_id", gebruikerId);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
+        {
+            return reader.GetInt32("count") > 0;
+        }
+
+        return false;
+    }
+
+    public int GetRegistratieCountForWerk(int werkId)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT COUNT(*) as count
+            FROM volenteer_work_user
+            WHERE volenteer_work_id = @werk_id");
+        command.AddParameter("@werk_id", werkId);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
+        {
+            return reader.GetInt32("count");
+        }
+
+        return 0;
+    }
+}
