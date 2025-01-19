@@ -11,5 +11,6 @@ namespace Domain.Common.Interfaces.Repository
         WerkRegistratie? GetRegistratieOnWerkId(int werkId);
         int GetRegistratieCountForWerk(int werkId);
         bool HeeftGebruikerRegistratie(int werkId, int gebruikerId);
+        WerkRegistratie? GetRegistratieByWerkAndGebruiker(int werkId, int gebruikerId);
     }
 }

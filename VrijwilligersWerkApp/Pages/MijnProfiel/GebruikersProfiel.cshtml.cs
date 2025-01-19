@@ -56,7 +56,7 @@ namespace VrijwilligersWerkApp.Pages.MijnProfiel
             }
         }
 
-        public IActionResult OnPostAnnuleerRegistratie(int werkId)
+        public IActionResult OnPostAnnuleerRegistratie(int registratieId, int werkId)
         {
             var gebruikerId = HttpContext.Session.GetInt32("UserId");
             if (!gebruikerId.HasValue)

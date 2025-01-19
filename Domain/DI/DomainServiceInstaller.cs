@@ -19,6 +19,7 @@ namespace Domain.DI
             // Werk Services
             services.AddScoped<IVrijwilligersWerkBeheer, VrijwilligersWerkBeheer>();
             services.AddScoped<IRegistratieBeheer, RegistratieBeheer>();
+            services.AddScoped<IWerkRegistratieService, WerkRegistratieService>();
 
             // User Services
             services.AddScoped<IUserBeheer, UserBeheer>();

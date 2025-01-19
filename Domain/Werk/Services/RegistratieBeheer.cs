@@ -34,7 +34,8 @@ namespace Domain.Werk.Services
                 });
 
             // Check capaciteit voordat we de registratie proberen
-            if (werk.AantalRegistraties >= werk.MaxCapaciteit)
+            var huidigeRegistraties = registratieRepository.GetRegistratieCountForWerk(werkId);
+            if (huidigeRegistraties >= werk.MaxCapaciteit)
             {
                 throw new DomainValidationException("Maximum capaciteit bereikt", new Dictionary<string, ICollection<string>> {
                     { "Capaciteit", new[] { "Dit werk heeft het maximaal aantal registraties bereikt." } }
@@ -51,8 +52,6 @@ namespace Domain.Werk.Services
 
             var registratie = WerkRegistratie.MaakNieuw(werk, gebruiker);
             registratieRepository.AddWerkRegistratie(registratie);
-            werk.VerhoogAantalRegistraties();
-            werkBeheer.BewerkWerk(werkId, werk.Titel, werk.MaxCapaciteit, werk.Omschrijving, werk.Locatie);
         }
 
         public void VerwijderRegistratie(int registratieId)
@@ -66,9 +65,6 @@ namespace Domain.Werk.Services
                     { "Registratie", new[] { "Kon de registratie niet verwijderen." } }
                 });
             }
-
-            werk.VerlaagAantalRegistraties();
-            werkBeheer.BewerkWerk(werk.WerkId, werk.Titel, werk.MaxCapaciteit, werk.Omschrijving, werk.Locatie);
         }
 
         public List<WerkRegistratie> HaalRegistratiesOp()
@@ -92,6 +88,14 @@ namespace Domain.Werk.Services
         public bool HeeftGebruikerRegistratie(int werkId, int gebruikerId)
         {
             return registratieRepository.HeeftGebruikerRegistratie(werkId, gebruikerId);
+        }
+    
+        public WerkRegistratie GetRegistratieByWerkAndUser(int werkId, int gebruikerId)
+        {
+            return registratieRepository.GetRegistratieByWerkAndGebruiker(werkId, gebruikerId) ??
+                throw new DomainValidationException("Registratie niet gevonden", new Dictionary<string, ICollection<string>> {
+                    { "Registratie", new[] { $"Geen registratie gevonden voor werk {werkId} en gebruiker {gebruikerId}." } }
+                });
         }
     }
 }

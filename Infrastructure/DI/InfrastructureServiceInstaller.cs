@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Infrastructure.Repos_DB.Settings;
 using Infrastructure.Session;
 using Microsoft.AspNetCore.Http;
+using Domain.Werk.Interfaces;
 
 namespace Infrastructure.DI
 {
@@ -47,6 +48,11 @@ namespace Infrastructure.DI
 
             services.AddScoped<IGebruikersTestRepository>(sp =>
                 new GebruikersTestRepositoryDB(
+                    sp.GetRequiredService<IDatabaseService>()
+                ));
+
+            services.AddScoped<IWerkCategorieRepository>(sp =>
+                new WerkCategorieRepositoryDB(
                     sp.GetRequiredService<IDatabaseService>()
                 ));
 

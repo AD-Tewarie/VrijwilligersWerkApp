@@ -9,7 +9,6 @@ namespace Domain.Werk.Models
         public string Titel { get; private set; }
         public string Omschrijving { get; private set; }
         public int MaxCapaciteit { get; private set; }
-        public int AantalRegistraties { get; private set; }
         public string Locatie { get; private set; }
 
         private VrijwilligersWerk(string titel, string omschrijving, int maxCapaciteit, string locatie)
@@ -19,7 +18,6 @@ namespace Domain.Werk.Models
             Omschrijving = omschrijving;
             MaxCapaciteit = maxCapaciteit;
             Locatie = locatie;
-            AantalRegistraties = 0;
         }
 
         public static VrijwilligersWerk MaakNieuw(string titel, string omschrijving, int maxCapaciteit, string locatie)
@@ -31,8 +29,7 @@ namespace Domain.Werk.Models
         {
             var werk = new VrijwilligersWerk(data.Titel, data.Omschrijving, data.MaxCapaciteit, data.Locatie)
             {
-                WerkId = data.WerkId,
-                AantalRegistraties = data.AantalRegistraties
+                WerkId = data.WerkId
             };
             return werk;
         }
@@ -44,7 +41,6 @@ namespace Domain.Werk.Models
                 Titel,
                 Omschrijving,
                 MaxCapaciteit,
-                AantalRegistraties,
                 Locatie
             );
         }
@@ -95,22 +91,6 @@ namespace Domain.Werk.Models
             {
                 throw new DomainValidationException("Validatie fouten opgetreden", fouten);
             }
-        }
-
-        public void VerhoogAantalRegistraties()
-        {
-            if (AantalRegistraties >= MaxCapaciteit)
-                throw new InvalidOperationException("Maximum capaciteit is bereikt.");
-
-            AantalRegistraties++;
-        }
-
-        public void VerlaagAantalRegistraties()
-        {
-            if (AantalRegistraties <= 0)
-                throw new InvalidOperationException("Aantal registraties kan niet negatief worden.");
-
-            AantalRegistraties--;
         }
     }
 }

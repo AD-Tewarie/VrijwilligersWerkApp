@@ -57,7 +57,10 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <form method="post" asp-page-handler="AnnuleerRegistratie" asp-route-registratieId="@registratie.RegistratieId" style="display: inline;">
+                                            <form method="post" asp-page-handler="AnnuleerRegistratie" 
+                                                  asp-route-registratieId="@registratie.RegistratieId" 
+                                                  asp-route-werkId="@registratie.WerkId" 
+                                                  style="display: inline;">
                                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Weet je zeker dat je deze registratie wilt annuleren?')">
                                                     Annuleren
                                                 </button>

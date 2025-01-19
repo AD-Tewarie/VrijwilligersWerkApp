@@ -1,4 +1,4 @@
-﻿namespace Domain.Common.Data
+﻿﻿namespace Domain.Common.Data
 {
     public class WerkData
     {
@@ -6,22 +6,18 @@
         public string Titel { get; set; }
         public string Omschrijving { get; set; }
         public int MaxCapaciteit { get; set; }
-        public int AantalRegistraties { get; set; }
         public string Locatie { get; set; }
-
         public WerkData(
             int werkId,
             string titel,
             string omschrijving,
             int maxCapaciteit,
-            int aantalRegistraties,
             string locatie)
         {
             WerkId = werkId;
             Titel = titel;
             Omschrijving = omschrijving;
             MaxCapaciteit = maxCapaciteit;
-            AantalRegistraties = aantalRegistraties;
             Locatie = locatie;
         }
     }

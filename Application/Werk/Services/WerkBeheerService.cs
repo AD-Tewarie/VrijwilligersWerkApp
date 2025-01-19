@@ -7,10 +7,17 @@ namespace Application.Werk.Services
     public class WerkBeheerService : IWerkBeheerService
     {
         private readonly IVrijwilligersWerkBeheer werkBeheer;
+        private readonly IWerkRegistratieService werkRegistratieService;
+        private readonly IWerkCategorieRepository werkCategorieRepository;
 
-        public WerkBeheerService(IVrijwilligersWerkBeheer werkBeheer)
+        public WerkBeheerService(
+            IVrijwilligersWerkBeheer werkBeheer,
+            IWerkRegistratieService werkRegistratieService,
+            IWerkCategorieRepository werkCategorieRepository)
         {
             this.werkBeheer = werkBeheer ?? throw new ArgumentNullException(nameof(werkBeheer));
+            this.werkRegistratieService = werkRegistratieService ?? throw new ArgumentNullException(nameof(werkRegistratieService));
+            this.werkCategorieRepository = werkCategorieRepository ?? throw new ArgumentNullException(nameof(werkCategorieRepository));
         }
 
         public void VoegWerkToe(WerkAanmaakViewModel model)
@@ -47,8 +54,9 @@ namespace Application.Werk.Services
                 Titel = werk.Titel,
                 Omschrijving = werk.Omschrijving,
                 MaxCapaciteit = werk.MaxCapaciteit,
-                AantalRegistraties = werk.AantalRegistraties,
-                Locatie = werk.Locatie
+                AantalRegistraties = werkRegistratieService.HaalAantalRegistratiesOp(werk.WerkId),
+                Locatie = werk.Locatie,
+                Categories = werkCategorieRepository.HaalCategorieënOpVoorWerk(werk.WerkId)
             }).ToList();
         }
 
@@ -60,7 +68,7 @@ namespace Application.Werk.Services
                 werk.Titel,
                 werk.Omschrijving,
                 werk.MaxCapaciteit,
-                werk.AantalRegistraties,
+                werkRegistratieService.HaalAantalRegistratiesOp(werkId),
                 werk.Locatie);
         }
     }

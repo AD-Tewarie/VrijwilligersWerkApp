@@ -142,4 +142,18 @@ public class GebruikersTestRepositoryDB : IGebruikersTestRepository
 
         return categorieën;
     }
+
+
+     public void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId)
+        {
+            using var connection = databaseService.GetConnection();
+            databaseService.OpenConnection(connection);
+
+            var command = databaseService.CreateCommand(connection,
+                "INSERT INTO work_categories (work_id, category_id) VALUES (@workId, @categoryId)");
+
+            command.AddParameter("@workId", werkId);
+            command.AddParameter("@categoryId", categorieId);
+            command.ExecuteNonQuery();
+        }
 }

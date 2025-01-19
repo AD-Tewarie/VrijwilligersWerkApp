@@ -40,18 +40,9 @@ namespace Application.Werk.Services
         {
             try
             {
-                if (!registratieBeheer.HeeftGebruikerRegistratie(werkId, gebruikerId))
-                {
-                    return RegistratieResultaatViewModel.Mislukt("Geen registratie gevonden voor dit werk.");
-                }
-
-                var registraties = registratieBeheer.HaalRegistratiesOp()
-                    .Where(r => r.VrijwilligersWerk.WerkId == werkId && r.User.UserId == gebruikerId)
-                    .Select(r => r.RegistratieId)
-                    .FirstOrDefault();
-
-                registratieBeheer.VerwijderRegistratie(registraties);
-                return RegistratieResultaatViewModel.SuccesVol("Registratie succesvol ingetrokken.");
+                var registratie = registratieBeheer.GetRegistratieByWerkAndUser(werkId, gebruikerId);
+                registratieBeheer.VerwijderRegistratie(registratie.RegistratieId);
+                return RegistratieResultaatViewModel.SuccesVol("Registratie succesvol geannuleerd.");
             }
             catch (DomainValidationException ex)
             {

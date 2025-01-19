@@ -14,6 +14,18 @@ namespace VrijwilligersWerkApp.Pages.RegistreerWerk
         public List<WerkAanbiedingOverzichtViewModel> WerkAanbiedingen { get; set; }
         public string FeedbackMessage { get; set; }
         public string SuccesMessage { get; set; }
+        private Dictionary<int, bool> registratieStatus = new();
+
+        public bool HeeftGebruikerRegistratie(int werkId)
+        {
+            if (!registratieStatus.ContainsKey(werkId))
+            {
+                var userId = HttpContext.Session.GetInt32("UserId");
+                registratieStatus[werkId] = userId.HasValue &&
+                    werkRegistratieBeheerService.HeeftGebruikerRegistratie(userId.Value, werkId);
+            }
+            return registratieStatus[werkId];
+        }
 
         public VrijwilligersWerkOverzichtModel(
             IWerkBeheerService werkBeheerService,

@@ -10,5 +10,6 @@ namespace Domain.Common.Interfaces.Repository
         List<TestVraag> HaalAlleTestVragenOp();
         TestVraag? GetTestVraagOnId(int id);
         List<WerkCategorie> GetWerkCategorieënByWerkId(int werkId);
+        void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId);
     }
 }

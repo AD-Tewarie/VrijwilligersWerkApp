@@ -9,5 +9,6 @@ namespace Application.Werk.ViewModels
         public int AantalRegistraties { get; set; }
         public required string Locatie { get; set; }
         public bool IsVol => AantalRegistraties >= MaxCapaciteit;
+        public required List<string> Categories { get; set; } = new();
     }
 }

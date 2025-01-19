@@ -117,7 +117,7 @@ public class WerkRegistratieRepositoryDB : IWerkRegistratieRepository
 
             if (werk != null && user != null)
             {
-                registraties.Add(WerkRegistratie.LaadVanuitDatabase(registratieId, werk, user));
+                registraties.Add(WerkRegistratie.Laad(registratieId, werk, user));
             }
         }
 
@@ -148,7 +148,7 @@ public class WerkRegistratieRepositoryDB : IWerkRegistratieRepository
 
             if (werk != null && user != null)
             {
-                return WerkRegistratie.LaadVanuitDatabase(registratieId, werk, user);
+                return WerkRegistratie.Laad(registratieId, werk, user);
             }
         }
 
@@ -180,7 +180,7 @@ public class WerkRegistratieRepositoryDB : IWerkRegistratieRepository
 
             if (werk != null && user != null)
             {
-                return WerkRegistratie.LaadVanuitDatabase(registratieId, werk, user);
+                return WerkRegistratie.Laad(registratieId, werk, user);
             }
         }
 
@@ -227,5 +227,35 @@ public class WerkRegistratieRepositoryDB : IWerkRegistratieRepository
         }
 
         return 0;
+    }
+
+    public WerkRegistratie? GetRegistratieByWerkAndGebruiker(int werkId, int gebruikerId)
+    {
+        using var connection = databaseService.GetConnection();
+        databaseService.OpenConnection(connection);
+
+        var command = databaseService.CreateCommand(connection, @"
+            SELECT id
+            FROM volenteer_work_user
+            WHERE volenteer_work_id = @werk_id
+            AND user_id = @user_id
+            LIMIT 1");
+        command.AddParameter("@werk_id", werkId);
+        command.AddParameter("@user_id", gebruikerId);
+
+        using var reader = (MySqlDataReader)command.ExecuteReader();
+        if (reader.Read())
+        {
+            var registratieId = reader.GetInt32("id");
+            var werk = werkRepository.GetWerkOnId(werkId);
+            var user = userRepository.GetUserOnId(gebruikerId);
+
+            if (werk != null && user != null)
+            {
+                return WerkRegistratie.Laad(registratieId, werk, user);
+            }
+        }
+
+        return null;
     }
 }

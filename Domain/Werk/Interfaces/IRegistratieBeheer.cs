@@ -10,5 +10,6 @@ namespace Domain.Werk.Interfaces
         WerkRegistratie HaalRegistratieOp(int registratieId);
         int HaalAantalRegistratiesOp(int werkId);
         bool HeeftGebruikerRegistratie(int werkId, int gebruikerId);
+        WerkRegistratie GetRegistratieByWerkAndUser(int werkId, int gebruikerId);
     }
 }

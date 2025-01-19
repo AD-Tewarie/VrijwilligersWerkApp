@@ -33,6 +33,7 @@
                     <th scope="col">Beschrijving</th>
                     <th scope="col">Locatie</th>
                     <th scope="col">Bezetting</th>
+                    <th scope="col">Categorieën</th>
                     <th scope="col">Acties</th>
                 </tr>
             </thead>
@@ -44,6 +45,7 @@
                         <td>@werk.Omschrijving</td>
                         <td>@werk.Locatie</td>
                         <td>@werk.AantalRegistraties / @werk.MaxCapaciteit</td>
+                        <td><span class="badge bg-primary">@werk.Categories.FirstOrDefault()</span></td>
                         <td>
                             <form method="post" asp-page-handler="Apply">
                                 <input type="hidden" name="id" value="@werk.WerkId" />

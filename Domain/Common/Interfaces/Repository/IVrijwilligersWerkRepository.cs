@@ -9,7 +9,6 @@ namespace Domain.Common.Interfaces.Repository
         int AddVrijwilligersWerk(VrijwilligersWerk werk);
         bool BewerkVrijwilligersWerk(VrijwilligersWerk updatedWerk);
         bool VerwijderVrijwilligersWerk(int werkId);
-        bool BewerkAantalRegistraties(int werkId, int wijziging);
         void VoegWerkCategorieToeAanNieuweWerk(int werkId, int categorieId);
         List<int> GetWerkCategorieënByWerkId(int werkId);
     }

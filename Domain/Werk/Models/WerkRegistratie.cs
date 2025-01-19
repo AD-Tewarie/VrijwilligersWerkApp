@@ -22,7 +22,7 @@ namespace Domain.Werk.Models
             return new WerkRegistratie(vrijwilligersWerk, user);
         }
 
-        public static WerkRegistratie LaadVanuitDatabase(int registratieId, VrijwilligersWerk vrijwilligersWerk, User user)
+        public static WerkRegistratie Laad(int registratieId, VrijwilligersWerk vrijwilligersWerk, User user)
         {
             var registratie = new WerkRegistratie(vrijwilligersWerk, user);
             registratie.RegistratieId = registratieId;
@@ -36,10 +36,6 @@ namespace Domain.Werk.Models
             if (vrijwilligersWerk == null)
             {
                 fouten["VrijwilligersWerk"] = new List<string> { "Vrijwilligerswerk is verplicht." };
-            }
-            else if (vrijwilligersWerk.AantalRegistraties >= vrijwilligersWerk.MaxCapaciteit)
-            {
-                fouten["VrijwilligersWerk"] = new List<string> { "Maximum capaciteit is bereikt." };
             }
 
             if (user == null)
