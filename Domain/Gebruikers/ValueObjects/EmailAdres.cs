@@ -21,8 +21,8 @@ public class EmailAdres
         
         try
         {
-            // Basic email validation using regex
-            var regex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+            // More strict email validation using regex
+            var regex = new Regex(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$");
             return regex.IsMatch(email);
         }
         catch
