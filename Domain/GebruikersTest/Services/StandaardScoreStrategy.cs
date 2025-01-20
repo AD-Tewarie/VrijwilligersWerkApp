@@ -10,10 +10,10 @@ namespace Domain.GebruikersTest.Services
     public class StandaardScoreStrategy : IScoreStrategy
     {
         public Dictionary<Categorie, int> BerekenScores(
-            Dictionary<int, int> affiniteiten,
-            Dictionary<int, int> antwoorden,
-            Dictionary<int, TestVraag> vragen,
-            Dictionary<int, Categorie> categorieën)
+             Dictionary<int, int> affiniteiten,
+             Dictionary<int, int> antwoorden,
+             Dictionary<int, TestVraag> vragen,
+             Dictionary<int, Categorie> categorieën)
         {
             var scores = new Dictionary<Categorie, int>();
 
@@ -29,7 +29,8 @@ namespace Domain.GebruikersTest.Services
                     affiniteiten,
                     vragen);
 
-                scores[categorie] = totaleScore;
+                // Normaliseer score naar 0-100 schaal
+                scores[categorie] = Math.Min(100, Math.Max(0, totaleScore));
             }
 
             return scores;

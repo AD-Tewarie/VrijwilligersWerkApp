@@ -22,4 +22,7 @@
     <PackageReference Include="MySqlConnector" Version="2.3.5" />
     <PackageReference Include="System.Text.Json" Version="8.0.1" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Session\Models\" />
+  </ItemGroup>
 </Project>

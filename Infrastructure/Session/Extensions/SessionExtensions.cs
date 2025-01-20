@@ -7,13 +7,46 @@ namespace Infrastructure.Session.Extensions
     {
         public static void Set<T>(this ISession session, string key, T value)
         {
-            session.SetString(key, JsonSerializer.Serialize(value));
+            if (value == null)
+            {
+                session.Remove(key);
+                return;
+            }
+
+            var jsonData = JsonSerializer.Serialize(value, new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+
+            session.SetString(key, jsonData);
         }
 
-        public static T? Get<T>(this ISession session, string key)
+        public static T Get<T>(this ISession session, string key)
         {
-            var value = session.GetString(key);
-            return value == null ? default : JsonSerializer.Deserialize<T>(value);
+            var jsonData = session.GetString(key);
+            if (string.IsNullOrEmpty(jsonData))
+            {
+                return default;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<T>(jsonData, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+            }
+            catch
+            {
+                return default;
+            }
+        }
+
+        public static bool TryGetValue<T>(this ISession session, string key, out T value)
+        {
+            value = session.Get<T>(key);
+            return value != null;
         }
     }
 }
