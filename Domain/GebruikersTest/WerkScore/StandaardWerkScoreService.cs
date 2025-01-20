@@ -20,15 +20,18 @@ public class StandaardWerkScoreService : IWerkScoreService
         if (scores == null)
             throw new ArgumentNullException(nameof(scores));
 
-        return werkLijst
-            .Select(werk => 
+        // Bereken scores voor alle werk items
+        var werkMetScores = werkLijst
+            .Select(werk =>
             {
-                var score = BerekenWerkScore(werk, scores).score;
+                var (score, maxScore) = BerekenWerkScore(werk, scores);
+                // Alleen filteren op volledig irrelevante matches (score = 0)
                 return new WerkMetScore(werk, score);
             })
-            .Where(w => w.Score > 0)
             .OrderByDescending(w => w.Score)
             .ToList();
+
+        return werkMetScores;
     }
 
     public (int score, int maximaleScore) BerekenWerkScore(VrijwilligersWerk werk, Dictionary<Categorie, int> scores)
@@ -39,26 +42,39 @@ public class StandaardWerkScoreService : IWerkScoreService
             throw new ArgumentNullException(nameof(scores));
 
         var werkCategorieen = repository.GetWerkCategorieënByWerkId(werk.WerkId);
-        if (!werkCategorieen.Any()) return (0, 100);
+        
+        // Als er geen categorieën zijn, kan er geen match zijn
+        if (!werkCategorieen.Any())
+            return (0, 100);
 
-        var totaleScore = 0;
-        var aantalMatchendeCategorieen = 0;
+        var totaleGewogenScore = 0.0;
+        var totaalGewicht = 0.0;
+        var maximaleScorePerCategorie = 100;
 
         foreach (var werkCategorie in werkCategorieen)
         {
             var categorie = repository.GetCategorieOnId(werkCategorie.CategorieId);
-            if (categorie != null && scores.TryGetValue(categorie, out int score))
+            if (categorie != null && scores.TryGetValue(categorie, out int categorieScore))
             {
-                totaleScore += score;
-                aantalMatchendeCategorieen++;
+                // Bepaal gewicht op basis van categorie prioriteit (kan later uitgebreid worden)
+                var gewicht = 1.0;
+                
+                // Voeg gewogen score toe
+                totaleGewogenScore += categorieScore * gewicht;
+                totaalGewicht += gewicht;
             }
         }
 
-        // Bereken gemiddelde score als percentage
-        var gemiddeldeScore = aantalMatchendeCategorieen > 0
-            ? (int)Math.Round((double)totaleScore / aantalMatchendeCategorieen)
-            : 0;
+        // Als er geen matches zijn gevonden
+        if (totaalGewicht == 0)
+            return (0, maximaleScorePerCategorie);
 
-        return (gemiddeldeScore, 100); 
+        // Bereken eindscore als gewogen gemiddelde
+        var eindScore = (int)Math.Round(totaleGewogenScore / totaalGewicht);
+        
+        // Zorg dat score tussen 0 en maximaleScorePerCategorie blijft
+        eindScore = Math.Min(maximaleScorePerCategorie, Math.Max(0, eindScore));
+
+        return (eindScore, maximaleScorePerCategorie);
     }
 }

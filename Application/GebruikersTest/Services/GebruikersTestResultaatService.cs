@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Application.GebruikersTest.Interfaces;
@@ -5,8 +6,9 @@ using Application.GebruikersTest.ViewModels;
 using Domain.Common.Interfaces.Repository;
 using Domain.GebruikersTest.Interfaces;
 using Domain.GebruikersTest.Models;
+using Domain.GebruikersTest.Services;
 using Domain.GebruikersTest.WerkScore;
-using Domain.Werk.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Application.GebruikersTest.Services
 {
@@ -16,24 +18,93 @@ namespace Application.GebruikersTest.Services
         private readonly ITestBeheer testBeheer;
         private readonly IWerkAanbevelingService werkAanbevelingService;
         private readonly IVrijwilligersWerkRepository werkRepository;
+        private readonly IScoreStrategy scoreStrategy;
+        private readonly ILogger<GebruikersTestResultaatService> logger;
 
         public GebruikersTestResultaatService(
             ITestSessieBeheer testSessieBeheer,
             ITestBeheer testBeheer,
             IWerkAanbevelingService werkAanbevelingService,
-            IVrijwilligersWerkRepository werkRepository)
+            IVrijwilligersWerkRepository werkRepository,
+            IScoreStrategy scoreStrategy,
+            ILogger<GebruikersTestResultaatService> logger)
         {
             this.testSessieBeheer = testSessieBeheer;
             this.testBeheer = testBeheer;
             this.werkAanbevelingService = werkAanbevelingService;
             this.werkRepository = werkRepository;
+            this.scoreStrategy = scoreStrategy;
+            this.logger = logger;
+        }
+
+        public List<TestResultaatViewModel> HaalTestResultatenOp(int gebruikerId)
+        {
+            // Haal sessie op en valideer
+            var sessie = testSessieBeheer.HaalOp(gebruikerId);
+            logger.LogDebug($"Ophalen resultaten voor gebruiker {gebruikerId}. Sessie voltooid: {sessie.IsVoltooid}");
+
+            if (!sessie.IsVoltooid || !sessie.Affiniteiten.Any())
+            {
+                logger.LogWarning($"Geen geldige sessie gevonden voor gebruiker {gebruikerId}");
+                return new List<TestResultaatViewModel>();
+            }
+
+            // Haal benodigde data op
+            var vragen = testBeheer.HaalAlleTestVragenOp().ToDictionary(v => v.Id);
+            var categorieën = testBeheer.HaalAlleCategorieënOp().ToDictionary(c => c.Id);
+            var alleWerk = werkRepository.GetVrijwilligersWerk();
+
+            // Gebruik scoreStrategy voor score berekeningen
+            var scores = scoreStrategy.BerekenScores(
+                sessie.Affiniteiten,
+                sessie.Antwoorden,
+                vragen,
+                categorieën);
+
+            // Haal werkaanbevelingen op per categorie
+            var resultaten = new List<TestResultaatViewModel>();
+            foreach (var (categorie, score) in scores)
+            {
+                // Filter werk voor deze categorie
+                var werkVoorCategorie = alleWerk.Where(werk => 
+                    werkRepository.GetWerkCategorieënByWerkId(werk.WerkId).Contains(categorie.Id)).ToList();
+
+                var aanbevelingen = werkVoorCategorie.Select(werk =>
+                {
+                    var werkCategorieën = werkRepository
+                        .GetWerkCategorieënByWerkId(werk.WerkId)
+                        .Select(id => WerkCategorie.Maak(werk.WerkId, id))
+                        .ToList();
+
+                    var (werkScore, _) = scoreStrategy.BerekenWerkScore(werk, scores, werkCategorieën, categorieën);
+
+                    return new WerkAanbevelingViewModel(
+                        werk.WerkId,
+                        werk.Titel,
+                        werk.Omschrijving,
+                        werkScore,
+                        werk.Locatie);
+                }).ToList();
+
+                resultaten.Add(new TestResultaatViewModel(
+                    categorie.Id,
+                    categorie.Naam,
+                    score,
+                    aanbevelingen));
+            }
+
+            return resultaten;
         }
 
         public GebruikersTestResultaatViewModel HaalResultatenOp(int gebruikerId, string presentatieType = "top", int? minimumScore = null)
         {
+            // Haal sessie op en valideer
             var sessie = testSessieBeheer.HaalOp(gebruikerId);
-            if (!sessie.IsVoltooid)
+            logger.LogDebug($"Ophalen resultaten voor gebruiker {gebruikerId}. Sessie voltooid: {sessie.IsVoltooid}");
+
+            if (!sessie.IsVoltooid || !sessie.Affiniteiten.Any())
             {
+                logger.LogWarning($"Geen geldige sessie gevonden voor gebruiker {gebruikerId}");
                 return new GebruikersTestResultaatViewModel
                 {
                     GebruikerId = gebruikerId,
@@ -41,27 +112,87 @@ namespace Application.GebruikersTest.Services
                 };
             }
 
-            var categorieen = testBeheer.HaalAlleCategorieënOp();
-            var categorieScores = new Dictionary<Categorie, int>();
+            // Haal benodigde data op
+            var vragen = testBeheer.HaalAlleTestVragenOp().ToDictionary(v => v.Id);
+            var categorieën = testBeheer.HaalAlleCategorieënOp().ToDictionary(c => c.Id);
 
-            foreach (var categorie in categorieen)
-            {
-                if (sessie.Affiniteiten.TryGetValue(categorie.Id, out int score))
+            // Bereken scores voor alle categorieën (scores zijn al genormaliseerd door StandaardScoreStrategy)
+            var categorieScores = scoreStrategy.BerekenScores(
+                sessie.Affiniteiten,
+                sessie.Antwoorden,
+                vragen,
+                categorieën);
+
+            logger.LogDebug($"Scores berekend voor {categorieScores.Count} categorieën");
+
+            // Cache voor werk scores om herberekening te voorkomen
+            var werkScoreCache = new Dictionary<int, (int score, int maxScore)>();
+            
+            // Haal alle beschikbare werk op
+            var alleWerk = werkRepository.GetVrijwilligersWerk();
+            var werkCategorieënCache = new Dictionary<int, List<WerkCategorie>>();
+
+            // Bereken scores voor al het werk één keer en cache de resultaten
+            var aanbevolenWerk = alleWerk
+                .Select(werk =>
                 {
-                    categorieScores[categorie] = score * 20; // Convert 1-5 scale to percentage
-                }
-            }
+                    // Gebruik gecachede werkCategorieën of haal ze op
+                    if (!werkCategorieënCache.TryGetValue(werk.WerkId, out var werkCategorieën))
+                    {
+                        werkCategorieën = werkRepository
+                            .GetWerkCategorieënByWerkId(werk.WerkId)
+                            .Select(id => WerkCategorie.Maak(werk.WerkId, id))
+                            .ToList();
+                        werkCategorieënCache[werk.WerkId] = werkCategorieën;
+                    }
 
-            var aanbevelingen = werkAanbevelingService.HaalAanbevelingenOp(gebruikerId, presentatieType, minimumScore ?? 50);
-            var aanbevolenWerk = new List<WerkMetScore>();
+                    if (!werkCategorieën.Any()) return null;
 
-            foreach (var aanbeveling in aanbevelingen)
+                    // Gebruik gecachede score of bereken nieuwe
+                    if (!werkScoreCache.TryGetValue(werk.WerkId, out var scoreResult))
+                    {
+                        scoreResult = scoreStrategy.BerekenWerkScore(
+                            werk,
+                            categorieScores,
+                            werkCategorieën,
+                            categorieën);
+                        werkScoreCache[werk.WerkId] = scoreResult;
+                    }
+
+                    var (score, maxScore) = scoreResult;
+                    
+                    // Filter op basis van minimumScore als opgegeven
+                    if (minimumScore.HasValue && score < minimumScore.Value)
+                        return null;
+
+                    if (score > 0)
+                    {
+                        logger.LogDebug($"Werk {werk.WerkId} score: {score}/{maxScore}");
+                        return new WerkMetScore(werk, score);
+                    }
+
+                    return null;
+                })
+                .Where(w => w != null)
+                .OrderByDescending(w => w.Score)
+                .ToList();
+
+            // Pas presentatieType filtering toe
+            switch (presentatieType.ToLower())
             {
-                var werk = werkRepository.GetWerkOnId(aanbeveling.WerkId);
-                if (werk != null)
-                {
-                    aanbevolenWerk.Add(new WerkMetScore(werk, aanbeveling.MatchPercentage));
-                }
+                case "top":
+                    aanbevolenWerk = aanbevolenWerk.Take(5).ToList();
+                    break;
+                case "minimum":
+                    aanbevolenWerk = aanbevolenWerk.Where(w => w.Score >= (minimumScore ?? 20)).ToList();
+                    break;
+                case "alle":
+                    aanbevolenWerk = aanbevolenWerk.Where(w => w.Score >= 20).ToList();
+                    break;
+                default:
+                    logger.LogWarning($"Onbekend presentatieType: {presentatieType}, gebruik standaard 'alle'");
+                    aanbevolenWerk = aanbevolenWerk.Where(w => w.Score >= 20).ToList();
+                    break;
             }
 
             return new GebruikersTestResultaatViewModel(
@@ -69,28 +200,6 @@ namespace Application.GebruikersTest.Services
                 categorieScores,
                 aanbevolenWerk,
                 presentatieType);
-        }
-
-        public List<TestResultaatViewModel> HaalTestResultatenOp(int gebruikerId)
-        {
-            var sessie = testSessieBeheer.HaalOp(gebruikerId);
-            if (!sessie.IsVoltooid)
-            {
-                return new List<TestResultaatViewModel>();
-            }
-
-            var categorieen = testBeheer.HaalAlleCategorieënOp();
-            var aanbevelingen = werkAanbevelingService.HaalAanbevelingenOp(gebruikerId, "alle", 50);
-
-            return categorieen
-                .Where(c => sessie.Affiniteiten.ContainsKey(c.Id))
-                .Select(c => new TestResultaatViewModel(
-                    c.Id,
-                    c.Naam,
-                    sessie.Affiniteiten[c.Id] * 20, 
-                    new List<WerkAanbevelingViewModel>() 
-                ))
-                .ToList();
         }
     }
 }

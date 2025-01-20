@@ -6,38 +6,44 @@ namespace Application.GebruikersTest.Services
     public class WerkPresentatieFilterService : IWerkPresentatieFilterService
     {
         private const int STANDAARD_TOP_AANTAL = 5;
+        private const int MINIMUM_RELEVANTE_SCORE = 20; // Score onder 20 wordt als niet relevant beschouwd
 
         public List<WerkMetScore> FilterOpPresentatieType(
-            List<WerkMetScore> werkMetScores, 
-            string presentatieType, 
+            List<WerkMetScore> werkMetScores,
+            string presentatieType,
             int minimumScore)
         {
             if (werkMetScores == null || !werkMetScores.Any())
                 return new List<WerkMetScore>();
 
-            // Filter eerst op minimale score
-            var gefilterdOpScore = werkMetScores
-                .Where(w => w.Score >= minimumScore)
+            // Sorteer eerst alle werk op score
+            var gesorteerdeWerk = werkMetScores
                 .OrderByDescending(w => w.Score)
                 .ToList();
 
-            if (string.IsNullOrWhiteSpace(presentatieType))
-                return gefilterdOpScore;
-
             // Filter op basis van presentatie type
-            return presentatieType.ToLower() switch
+            return presentatieType?.ToLower() switch
             {
-                "top" => gefilterdOpScore
+                // Top 5 resultaten met minimale relevantie
+                "top" => gesorteerdeWerk
+                    .Where(w => w.Score >= MINIMUM_RELEVANTE_SCORE)
                     .Take(STANDAARD_TOP_AANTAL)
                     .ToList(),
 
-                "minimum" => gefilterdOpScore,
-
-                "alle" => werkMetScores
-                    .OrderByDescending(w => w.Score)
+                // Alle resultaten boven minimum score
+                "minimum" => gesorteerdeWerk
+                    .Where(w => w.Score >= minimumScore)
                     .ToList(),
 
-                _ => gefilterdOpScore
+                // Alle resultaten met minimale relevantie
+                "alle" => gesorteerdeWerk
+                    .Where(w => w.Score >= MINIMUM_RELEVANTE_SCORE)
+                    .ToList(),
+
+                // Standaard: gebruik minimum score filter
+                _ => gesorteerdeWerk
+                    .Where(w => w.Score >= minimumScore)
+                    .ToList()
             };
         }
     }

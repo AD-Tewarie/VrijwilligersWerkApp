@@ -48,24 +48,35 @@
                 <div class="card-body">
                     <div class="btn-group w-100 mb-3" role="group">
                         <button type="button" onclick="updatePresentationType('top')"
-                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "top" ? "btn-primary" : "btn-outline-primary")">
-                            Top Matches
+                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "top" ? "btn-primary" : "btn-outline-primary")"
+                            data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Toon de 5 beste matches">
+                            Top 5
+                        </button>
+                        <button type="button" onclick="updatePresentationType('minimum')"
+                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "minimum" ? "btn-primary" : "btn-outline-primary")"
+                            data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Toon alle matches boven de geselecteerde minimum score">
+                            Boven Minimum
                         </button>
                         <button type="button" onclick="updatePresentationType('alle')"
-                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "alle" ? "btn-primary" : "btn-outline-primary")">
-                            Alle Opties
+                            class="btn @(Model.ResultaatModel.HuidigePresentatieType == "alle" ? "btn-primary" : "btn-outline-primary")"
+                            data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Toon alle matches met een relevante score (20% of hoger)">
+                            Alle Relevante
                         </button>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3 @(Model.ResultaatModel.HuidigePresentatieType != "minimum" ? "d-none" : "")" id="scoreSlider">
                         <label for="minimumScore" class="form-label">Minimale Match Score:</label>
                         <div class="d-flex align-items-center">
-                            <input type="range" class="form-range" id="minimumScore" min="0" max="100" 
-                                   value="@(Request.Query["minimumScore"].ToString() ?? "50")"
+                            <input type="range" class="form-range" id="minimumScore" min="20" max="100"
+                                   value="@(Request.Query["minimumScore"].ToString() ?? "20")"
                                    oninput="updateScoreDisplay(this.value)"
                                    onchange="updateScore(this.value)">
-                            <span id="scoreValue" class="ms-2">@(Request.Query["minimumScore"].ToString() ?? "50")%</span>
+                            <span id="scoreValue" class="ms-2">@(Request.Query["minimumScore"].ToString() ?? "20")%</span>
                         </div>
+                        <small class="text-muted">Minimale relevantie drempel is 20%</small>
                     </div>
                 </div>
             </div>
@@ -123,11 +134,24 @@
         }
 
         function updateScore(value) {
-            updateResults('top', value);
+            const currentType = document.querySelector('.btn-group .btn-primary').textContent.trim().toLowerCase();
+            const presentationType =
+                currentType === 'top 5' ? 'top' :
+                currentType === 'boven minimum' ? 'minimum' : 'alle';
+            updateResults(presentationType, value);
         }
 
         function updatePresentationType(type) {
             const score = document.getElementById('minimumScore').value;
+            const scoreSlider = document.getElementById('scoreSlider');
+            
+            
+            if (type === 'minimum') {
+                scoreSlider.classList.remove('d-none');
+            } else {
+                scoreSlider.classList.add('d-none');
+            }
+            
             updateResults(type, score);
         }
 
@@ -144,12 +168,20 @@
                     
                     // Update the aanbevolen werk section
                     const newContent = doc.querySelector('#aanbevolenWerkContainer');
-                    document.querySelector('#aanbevolenWerkContainer').innerHTML = newContent.innerHTML;
+                    if (newContent) {
+                        document.querySelector('#aanbevolenWerkContainer').innerHTML = newContent.innerHTML;
+                    }
 
                     // Update presentation type buttons
                     const buttons = document.querySelectorAll('.btn-group .btn');
                     buttons.forEach(button => {
-                        if (button.textContent.trim().toLowerCase().includes(presentatieType)) {
+                        const buttonText = button.textContent.trim().toLowerCase();
+                        const isActive =
+                            (presentatieType === 'top' && buttonText === 'top 5') ||
+                            (presentatieType === 'minimum' && buttonText === 'boven minimum') ||
+                            (presentatieType === 'alle' && buttonText === 'alle relevante');
+                            
+                        if (isActive) {
                             button.classList.remove('btn-outline-primary');
                             button.classList.add('btn-primary');
                         } else {
@@ -158,10 +190,31 @@
                         }
                     });
 
+                    // Update score slider visibility
+                    const scoreSlider = document.getElementById('scoreSlider');
+                    if (scoreSlider) {
+                        if (presentatieType === 'minimum') {
+                            scoreSlider.classList.remove('d-none');
+                        } else {
+                            scoreSlider.classList.add('d-none');
+                        }
+                    }
+
                     // Update URL without page reload
                     window.history.pushState({}, '', url.toString());
+                })
+                .catch(error => {
+                    console.error('Error updating results:', error);
                 });
         }
+
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
 
         // Prevent form resubmission on page refresh
         if (window.history.replaceState) {

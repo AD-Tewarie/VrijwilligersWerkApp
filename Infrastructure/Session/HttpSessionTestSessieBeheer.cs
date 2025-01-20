@@ -1,9 +1,9 @@
 using Domain.GebruikersTest.Interfaces;
 using Domain.GebruikersTest.Models;
-using Infrastructure.Session.Models;
 using Microsoft.AspNetCore.Http;
-using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Domain.Common.Interfaces.Repository;
+using Infrastructure.Session.Extensions;
 
 namespace Infrastructure.Session
 {
@@ -11,17 +11,24 @@ namespace Infrastructure.Session
     {
         private readonly IHttpContextAccessor httpContextAccessor;
         private readonly IGebruikersTestRepository gebruikersTestRepository;
-        private const string SESSIE_KEY_PREFIX = "TestSessie_";
+        private readonly ILogger<HttpSessionTestSessieBeheer> logger;
+
+        private const string AFFINITEITEN_KEY = "Test_Affiniteiten_{0}";
+        private const string ANTWOORDEN_KEY = "Test_Antwoorden_{0}";
+        private const string HUIDIGE_STAP_KEY = "Test_HuidigeStap_{0}";
+        private const string IS_VOLTOOID_KEY = "Test_IsVoltooid_{0}";
 
         public HttpSessionTestSessieBeheer(
             IHttpContextAccessor httpContextAccessor,
-            IGebruikersTestRepository gebruikersTestRepository)
+            IGebruikersTestRepository gebruikersTestRepository,
+            ILogger<HttpSessionTestSessieBeheer> logger)
         {
             this.httpContextAccessor = httpContextAccessor;
             this.gebruikersTestRepository = gebruikersTestRepository;
+            this.logger = logger;
         }
 
-        private string GetSessionKey(int gebruikerId) => $"{SESSIE_KEY_PREFIX}{gebruikerId}";
+        private string GetKey(string key, int gebruikerId) => string.Format(key, gebruikerId);
 
         public TestSessie MaakNieuweSessie(int gebruikerId)
         {
@@ -32,19 +39,47 @@ namespace Infrastructure.Session
 
         public TestSessie HaalOp(int gebruikerId)
         {
-            var sessieJson = httpContextAccessor.HttpContext?.Session.GetString(GetSessionKey(gebruikerId));
-            if (string.IsNullOrEmpty(sessieJson))
+            var session = httpContextAccessor.HttpContext?.Session;
+            if (session == null)
             {
+                logger.LogWarning("Geen HTTP context beschikbaar voor gebruiker {GebruikerId}", gebruikerId);
                 return MaakNieuweSessie(gebruikerId);
             }
 
             try
             {
-                var sessieData = JsonSerializer.Deserialize<TestSessieData>(sessieJson);
-                return sessieData?.NaarDomeinModel() ?? MaakNieuweSessie(gebruikerId);
+                var affiniteiten = session.Get<Dictionary<int, int>>(GetKey(AFFINITEITEN_KEY, gebruikerId)) ?? new Dictionary<int, int>();
+                var antwoorden = session.Get<Dictionary<int, int>>(GetKey(ANTWOORDEN_KEY, gebruikerId)) ?? new Dictionary<int, int>();
+                var huidigeStap = session.GetInt32(GetKey(HUIDIGE_STAP_KEY, gebruikerId)) ?? 0;
+                var isVoltooid = session.GetString(GetKey(IS_VOLTOOID_KEY, gebruikerId)) == "true";
+
+                var sessie = TestSessie.Start(gebruikerId);
+
+                foreach (var affiniteit in affiniteiten)
+                {
+                    sessie.ZetAffiniteit(affiniteit.Key, affiniteit.Value);
+                }
+
+                foreach (var antwoord in antwoorden)
+                {
+                    sessie.VoegAntwoordToe(antwoord.Key, antwoord.Value);
+                }
+
+                for (int i = 0; i < huidigeStap; i++)
+                {
+                    sessie.VerhoogStap();
+                }
+
+                if (isVoltooid)
+                {
+                    sessie.RondAf();
+                }
+
+                return sessie;
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Fout bij ophalen sessie voor gebruiker {GebruikerId}", gebruikerId);
                 return MaakNieuweSessie(gebruikerId);
             }
         }
@@ -137,14 +172,39 @@ namespace Infrastructure.Session
 
         public void Opslaan(int gebruikerId, TestSessie sessie)
         {
-            var sessieData = new TestSessieData(sessie);
-            var sessieJson = JsonSerializer.Serialize(sessieData);
-            httpContextAccessor.HttpContext?.Session.SetString(GetSessionKey(gebruikerId), sessieJson);
+            var session = httpContextAccessor.HttpContext?.Session;
+            if (session == null)
+            {
+                logger.LogWarning("Geen HTTP context beschikbaar voor opslaan sessie van gebruiker {GebruikerId}", gebruikerId);
+                return;
+            }
+
+            try
+            {
+                session.Set(GetKey(AFFINITEITEN_KEY, gebruikerId), sessie.Affiniteiten);
+                session.Set(GetKey(ANTWOORDEN_KEY, gebruikerId), sessie.Antwoorden);
+                session.SetInt32(GetKey(HUIDIGE_STAP_KEY, gebruikerId), sessie.HuidigeStap);
+                session.SetString(GetKey(IS_VOLTOOID_KEY, gebruikerId), sessie.IsVoltooid.ToString().ToLower());
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Fout bij opslaan sessie voor gebruiker {GebruikerId}", gebruikerId);
+            }
         }
 
         public void Verwijder(int gebruikerId)
         {
-            httpContextAccessor.HttpContext?.Session.Remove(GetSessionKey(gebruikerId));
+            var session = httpContextAccessor.HttpContext?.Session;
+            if (session == null)
+            {
+                logger.LogWarning("Geen HTTP context beschikbaar voor verwijderen sessie van gebruiker {GebruikerId}", gebruikerId);
+                return;
+            }
+
+            session.Remove(GetKey(AFFINITEITEN_KEY, gebruikerId));
+            session.Remove(GetKey(ANTWOORDEN_KEY, gebruikerId));
+            session.Remove(GetKey(HUIDIGE_STAP_KEY, gebruikerId));
+            session.Remove(GetKey(IS_VOLTOOID_KEY, gebruikerId));
         }
     }
 }

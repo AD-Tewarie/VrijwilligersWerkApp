@@ -5,6 +5,8 @@ using Application.GebruikersTest.Interfaces;
 using Domain.GebruikersTest.Interfaces;
 using Domain.GebruikersTest.Models;
 using Domain.GebruikersTest.WerkScore;
+using Domain.GebruikersTest.Services;
+using Domain.Common.Interfaces.Repository;
 using VrijwilligersWerkModel = Domain.Werk.Models.VrijwilligersWerk;
 
 namespace Application.GebruikersTest.Services
@@ -13,13 +15,19 @@ namespace Application.GebruikersTest.Services
     {
         private readonly IWerkScoreService werkScoreService;
         private readonly ICategorieService categorieService;
+        private readonly StandaardScoreStrategy scoreStrategy;
+        private readonly IGebruikersTestRepository testRepository;
 
         public MatchBerekeningService(
             IWerkScoreService werkScoreService,
-            Domain.GebruikersTest.Interfaces.ICategorieService categorieService)
+            ICategorieService categorieService,
+            StandaardScoreStrategy scoreStrategy,
+            IGebruikersTestRepository testRepository)
         {
             this.werkScoreService = werkScoreService ?? throw new ArgumentNullException(nameof(werkScoreService));
             this.categorieService = categorieService ?? throw new ArgumentNullException(nameof(categorieService));
+            this.scoreStrategy = scoreStrategy ?? throw new ArgumentNullException(nameof(scoreStrategy));
+            this.testRepository = testRepository ?? throw new ArgumentNullException(nameof(testRepository));
         }
 
         public int BerekenMatchPercentage(VrijwilligersWerkModel werk, TestSessie sessie)
@@ -58,16 +66,29 @@ namespace Application.GebruikersTest.Services
 
         private Dictionary<Categorie, int> ConverteerAffiniteiten(IReadOnlyDictionary<int, int> affiniteiten)
         {
-            var scores = new Dictionary<Categorie, int>();
-            foreach (var affiniteit in affiniteiten)
-            {
-                var categorie = categorieService.GetCategorieOpId(affiniteit.Key);
-                if (categorie != null)
-                {
-                    scores[categorie] = affiniteit.Value;
-                }
-            }
-            return scores;
+            // Haal alle benodigde data op
+            var vragen = testRepository.HaalAlleTestVragenOp()
+                .ToDictionary(v => v.Id);
+            var categorieën = testRepository.HaalAlleCategorieënOp()
+                .ToDictionary(c => c.Id);
+
+            // Converteer IReadOnlyDictionary naar Dictionary voor de scoreStrategy
+            var affiniteitenDict = new Dictionary<int, int>(affiniteiten);
+            var antwoordenDict = new Dictionary<int, int>(affiniteiten);
+
+            // Bereken scores met de scoreStrategy
+            var scores = scoreStrategy.BerekenScores(
+                affiniteitenDict,
+                antwoordenDict,
+                vragen,
+                categorieën);
+
+            // Normaliseer scores naar percentages
+            var maxScore = 100;
+            return scores.ToDictionary(
+                kvp => kvp.Key,
+                kvp => Math.Min(maxScore, Math.Max(0, kvp.Value))
+            );
         }
 
         private int BerekenPercentage(int score, int maxScore)

@@ -65,16 +65,22 @@ namespace VrijwilligersWerkApp.Pages.GebruikersTest
                 // Probeer eerst met de opgegeven filters
                 ResultaatModel = resultaatService.HaalResultatenOp(gebruikerId.Value, presentatieType, parsedMinimumScore);
 
+                // Valideer minimumScore voor "minimum" presentatieType
+                if (presentatieType.ToLower() == "minimum" && (!parsedMinimumScore.HasValue || parsedMinimumScore.Value < 20))
+                {
+                    parsedMinimumScore = 20;
+                }
+
                 // Als er geen resultaten zijn, probeer met minder strikte filters
                 if (!ResultaatModel.AanbevolenWerk.Any())
                 {
-                    // Probeer eerst met een lagere minimumScore
-                    ResultaatModel = resultaatService.HaalResultatenOp(gebruikerId.Value, presentatieType, 0);
+                    // Probeer eerst met minimale relevante score
+                    ResultaatModel = resultaatService.HaalResultatenOp(gebruikerId.Value, presentatieType, 20);
 
                     // Als er nog steeds geen resultaten zijn, probeer alle werk te tonen
                     if (!ResultaatModel.AanbevolenWerk.Any())
                     {
-                        ResultaatModel = resultaatService.HaalResultatenOp(gebruikerId.Value, "alle", 0);
+                        ResultaatModel = resultaatService.HaalResultatenOp(gebruikerId.Value, "alle", 20);
                     }
                 }
 
@@ -105,9 +111,16 @@ namespace VrijwilligersWerkApp.Pages.GebruikersTest
                 TempData["ErrorMessage"] = $"Registratie mislukt: {ex.Message}";
             }
 
+            int minimumScore = 20;
+            if (Request.Query.ContainsKey("minimumScore") &&
+                int.TryParse(Request.Query["minimumScore"], out int score))
+            {
+                minimumScore = Math.Max(score, 20); 
+            }
+
             return RedirectToPage(new {
                 presentatieType = ResultaatModel?.HuidigePresentatieType ?? "top",
-                minimumScore = Request.Query["minimumScore"].ToString()
+                minimumScore = minimumScore
             });
         }
 

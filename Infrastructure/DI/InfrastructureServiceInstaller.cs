@@ -10,6 +10,7 @@ using Infrastructure.Repos_DB.Settings;
 using Infrastructure.Session;
 using Microsoft.AspNetCore.Http;
 using Domain.Werk.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.DI
 {
@@ -62,7 +63,8 @@ namespace Infrastructure.DI
             // Session Services
             services.AddScoped<ITestSessieBeheer>(sp => new HttpSessionTestSessieBeheer(
                 sp.GetRequiredService<IHttpContextAccessor>(),
-                sp.GetRequiredService<IGebruikersTestRepository>()
+                sp.GetRequiredService<IGebruikersTestRepository>(),
+                sp.GetRequiredService<ILogger<HttpSessionTestSessieBeheer>>()
             ));
         }
     }
